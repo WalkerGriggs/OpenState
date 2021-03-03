@@ -1,0 +1,101 @@
+$community: (
+  community: (
+    mobile: (
+      padding: 0 0 110px,
+    ),
+    tablet: (
+      padding: 0 0 180px,
+    ),
+  ),
+  content: (
+    mobile: (
+      margin: 0 (-$base-gutter-size / 2) -30px,
+    ),
+  ),
+  item: (
+    mobile: (
+      text-align: left,
+      padding: 0 ($base-gutter-size/2),
+      margin-bottom: 30px,
+    ),
+  ),
+  title: (
+    mobile: (
+      font-size: 24px,
+      font-weight: bold,
+      line-height: 1.13,
+      color: $openstate-l1,
+      font-family: $base-font-family-alternative,
+      margin-bottom: 15px,
+      padding: 0 40px 0
+      position: relative,
+      float: left,
+      min-width: 256px,
+      text-align: right,
+    ),
+    tablet: (
+      max-width: 265px,
+    )
+  ),
+  desc: (
+    mobile: (
+      font-size: 18px,
+      font-weight: 500,
+      line-height: 1.56,
+      color: $base-cape-color,
+      margin-bottom: 20px,
+      padding-left: 40px,
+    ),
+  ),
+);
+
+.shift-community {
+  $this: &;
+  @include responsive($community, community);
+
+  &__content {
+    @include responsive($community, content);
+  }
+
+  &__item {
+    @include responsive($community, item);
+  }
+
+  &__title {
+    @include responsive($community, title);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 7px;
+      width: 16px;
+      height: 16px;
+      transition: all 0.3s ease-in,
+    }
+
+    &--red::before {
+      background-image: url('/img/ic-bullet-1.svg');
+    }
+
+    &--purple::before {
+      background-image: url('/img/ic-bullet-2.svg');
+    }
+
+    &--blue::before {
+      background-image: url('/img/ic-bullet-3.svg');
+    }
+
+    &--yellow::before {
+      background-image: url('/img/ic-bullet-4.svg');
+    }
+
+    &--green::before {
+      background-image: url('/img/ic-bullet-5.svg');
+    }
+  }
+
+  &__desc {
+    @include responsive($community, desc);
+  }
+}

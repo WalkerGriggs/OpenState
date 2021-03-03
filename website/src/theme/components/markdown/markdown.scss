@@ -1,0 +1,105 @@
+$markdown: (
+  p: (
+    mobile: (
+      font-size: 16px,
+      font-weight: 500,
+      line-height: 1.7,
+      color: $base-cape-color,
+    ),
+  ),
+  code: (
+    mobile: (
+      background-color: $base-charade-color,
+      font-family: $base-block-family-code,
+      font-weight: 500,
+      font-size: 16px,
+      line-height: 1.5,
+      color: $base-white-color,
+    ),
+  ),
+  a: (
+    normal: (
+      color: $openstate-l3,
+      transition: all 0.3s ease-in,
+    ),
+    hover: (
+      color: $base-cape-color,
+      text-decoration: none,
+    ),
+  ),
+  li: (
+    mobile: (
+      padding: 5px 0,
+      font-size: 16px,
+      font-weight: 500,
+      line-height: 1.7,
+      color: $base-cape-color,
+    ),
+  ),
+  strong: (
+    mobile: (
+      color: $openstate-l1,
+    ),
+  ),
+  blockquote: (
+    mobile: (
+      background-color: $base-egg-color,
+      border-color: $openstate-l3,
+      font-size: 16px,
+      font-weight: 500,
+      line-height: 1.7,
+      color: $base-cape-color,
+    ),
+  ),
+  blockquote-code: (
+    mobile: (
+      background-color: $base-chamois-color,
+      color: $base-cape-color,
+    ),
+  ),
+  token-line: (
+    mobile: (
+      font-size: 14px,
+      font-weight: 500,
+      font-family: $base-block-family-code,
+    ),
+  ),
+);
+
+.markdown {
+  > p {
+    @include responsive($markdown, p);
+  }
+
+  a {
+    @include link($markdown, a);
+  }
+
+  li {
+    @include responsive($markdown, li);
+  }
+
+  strong {
+    @include responsive($markdown, strong);
+  }
+
+  blockquote {
+    @include responsive($markdown, blockquote);
+
+    code {
+      @include responsive($markdown, blockquote-code);
+    }
+  }
+
+  code {
+    @include responsive($markdown, code);
+  }
+
+  div[class^="codeBlock_"] {
+    border-radius: 0;
+  }
+
+  .token-line {
+    @include responsive($markdown, token-line);
+  }
+}

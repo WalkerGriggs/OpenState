@@ -1,0 +1,51 @@
+{
+        "name": "openstate",
+        "version": "0.0.1",
+        "description": "OpenState documentation website",
+        "author": {
+                "name": "WalkerGriggs",
+                "email": "walker@walkergriggs.com",
+                "url": "https://walkergriggs.com"
+        },
+        "repository": {
+                "type": "git",
+                "url": "git+https://github.com/walkergriggs/openstate.git"
+        },
+        "keywords": [
+                "frontend",
+                "scss",
+                "mixin",
+                "js",
+                "module"
+        ],
+        "bugs": {
+                "url": "https://github.com/walkergriggs/openstate/issues"
+        },
+        "scripts": {
+                "start": "docusaurus start",
+                "build": "docusaurus build",
+                "swizzle": "docusaurus swizzle",
+                "deploy": "docusaurus deploy"
+        },
+        "dependencies": {
+                "@docusaurus/core": "^2.0.0-alpha.50",
+                "@docusaurus/preset-classic": "^2.0.0-alpha.50",
+                "docusaurus-plugin-sass": "^0.1.8",
+                "@eightshift/frontend-libs": "^3.2.2",
+                "react": "^16.8.4",
+                "react-dom": "^16.8.4",
+                "react-scripts": "^3.4.1"
+        },
+        "browserslist": {
+                "production": [
+                        ">0.2%",
+                        "not dead",
+                        "not op_mini all"
+                ],
+                "development": [
+                        "last 1 chrome version",
+                        "last 1 firefox version",
+                        "last 1 safari version"
+                ]
+        }
+}
