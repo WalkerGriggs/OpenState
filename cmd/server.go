@@ -2,13 +2,17 @@ package cmd
 
 import (
 	"net"
+	"os"
 	"strings"
+
+	log "github.com/hashicorp/go-hclog"
 
 	"github.com/spf13/cobra"
 	"github.com/walkergriggs/openstate/openstate"
 )
 
 type ServerOptions struct {
+	LogLevel      string
 	SerfAdvertise string
 	RaftAdvertise string
 	Peers         string
@@ -19,6 +23,10 @@ func NewServerOptions() *ServerOptions {
 }
 
 func (o *ServerOptions) Complete(cmd *cobra.Command) error {
+	if o.LogLevel == "" {
+		o.LogLevel = "INFO"
+	}
+
 	return nil
 }
 
@@ -27,7 +35,14 @@ func (o *ServerOptions) Validate(cmd *cobra.Command, args []string) error {
 }
 
 func (o *ServerOptions) Run() {
+	logger := log.NewInterceptLogger(&log.LoggerOptions{
+		Name:   "OpenState",
+		Level:  log.LevelFromString(o.LogLevel),
+		Output: os.Stdout,
+	})
+
 	config := openstate.DefaultConfig()
+	config.Logger = logger
 
 	var err error
 
@@ -74,7 +89,8 @@ func NewCmdServer() *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.RaftAdvertise, "raft_addr", "r", o.RaftAdvertise, "Advertise address for Raft")
 	cmd.Flags().StringVarP(&o.SerfAdvertise, "serf_addr", "s", o.SerfAdvertise, "Advertise address for Serf")
-	cmd.Flags().StringVarP(&o.Peers, "peers", "p", o.Peers, "Command seperated list of peers.")
+	cmd.Flags().StringVarP(&o.Peers, "peers", "p", o.Peers, "Comma seperated list of peers.")
+	cmd.Flags().StringVarP(&o.LogLevel, "level", "l", o.LogLevel, "Log level [DEBUG, INFO, WARN, ERROR].")
 
 	return cmd
 }

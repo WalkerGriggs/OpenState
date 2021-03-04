@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	log "github.com/hashicorp/go-hclog"
+
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -17,6 +19,7 @@ const (
 	DefaultSerfPort = 4648
 )
 
+// Config is the comprehensive list of Server options.
 type Config struct {
 	// BootstrapExpect is used to determine how many peers to expect.
 	//
@@ -34,6 +37,9 @@ type Config struct {
 	//
 	// Defaults to 'false'
 	DevMode bool
+
+	// Logger is the logger used by the OpenState server, raft, and serf.
+	Logger log.InterceptLogger
 
 	// LogOutput is the location to write logs to.
 	//

@@ -1,7 +1,6 @@
 package openstate
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -18,7 +17,7 @@ func (s *Server) monitorLeadership() {
 	leaderStep := func(isLeader bool) {
 		if isLeader {
 			if weAreLeaderCh != nil {
-				fmt.Println("attempting to start the leader loop while running")
+				s.logger.Error("attempting to start the leader loop while running")
 				return
 			}
 
@@ -33,15 +32,14 @@ func (s *Server) monitorLeadership() {
 		}
 
 		if weAreLeaderCh == nil {
-			fmt.Println("attempted to stop the leader loop while not running")
+			s.logger.Error("attempted to stop the leader loop while not running")
 			return
 		}
 
-		fmt.Println("shutting down leader loop")
 		close(weAreLeaderCh)
 		leaderLoop.Wait()
 		weAreLeaderCh = nil
-		fmt.Println("cluster leadership lost")
+		s.logger.Info("cluster leadership lost")
 	}
 
 	for {
@@ -61,12 +59,12 @@ RECONCILE:
 
 	barrier := s.raft.Barrier(1 * time.Minute)
 	if err := barrier.Error(); err != nil {
-		fmt.Printf("Failed to wait for barrier %v\n", err)
+		s.logger.Error("Failed to wait for barrier %v\n", err)
 		goto WAIT
 	}
 
 	if err := s.reconcile(); err != nil {
-		fmt.Printf("Failed to reconcile: %v\n", err)
+		s.logger.Error("Failed to reconcile: %v\n", err)
 		goto WAIT
 	}
 
@@ -117,8 +115,7 @@ func (s *Server) addRaftPeer(m serf.Member) error {
 	nodeID := m.Tags["id"]
 
 	for _, server := range configFuture.Configuration().Servers {
-		if server.Address == raft.ServerAddress(addr) || server.ID == raft.ServerID(nodeID) {
-			fmt.Println("Server has already joined the cluster")
+		if server.Address == raft.ServerAddress(addr) && server.ID == raft.ServerID(nodeID) {
 			return nil
 		}
 		// TODO - handle if the server has a mismatched address or server ID
@@ -126,7 +123,7 @@ func (s *Server) addRaftPeer(m serf.Member) error {
 
 	addFuture := s.raft.AddVoter(raft.ServerID(nodeID), raft.ServerAddress(addr), 0, 0)
 	if err := addFuture.Error(); err != nil {
-		fmt.Println(err)
+		s.logger.Error("Failed to add server to Raft cluster: %v", err)
 		return err
 	}
 	return nil

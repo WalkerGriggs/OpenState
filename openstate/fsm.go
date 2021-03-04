@@ -2,19 +2,30 @@ package openstate
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
+
+	log "github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/raft"
 )
 
-type FSM struct {
-	names []string
+type FSMConfig struct {
+	// Logger is the logger used by the FSM
+	Logger log.Logger
 }
 
-func NewFSM() (*FSM, error) {
+type FSM struct {
+	// names are the hello-world state to replicate across the cluster
+	names []string
+
+	// Logger is the logger used by the FSM
+	logger log.Logger
+}
+
+func NewFSM(config *FSMConfig) (*FSM, error) {
 	return &FSM{
-		names: []string{},
+		names:  []string{},
+		logger: config.Logger,
 	}, nil
 }
 
@@ -33,7 +44,7 @@ func (f *FSM) Apply(log *raft.Log) interface{} {
 func (f *FSM) applyAddName(reqType MessageType, buf []byte, index uint64) interface{} {
 	var req NameAddRequest
 	if err := json.Unmarshal(buf, &req); err != nil {
-		fmt.Println("decode raft log err %v", err)
+		f.logger.Error("decode raft log err %v", err)
 		return err
 	}
 

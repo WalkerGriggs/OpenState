@@ -15,7 +15,7 @@ func (s *Server) serfEventHandler() {
 				s.nodeJoin(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 			default:
-				fmt.Println("unhandled serf event")
+				s.logger.Warn("unhandled serf event")
 			}
 		}
 	}
