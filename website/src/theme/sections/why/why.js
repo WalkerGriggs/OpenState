@@ -24,10 +24,6 @@ export default function Why() {
         componentClass={component}
         size={'medium'}
       >
-        <div className={`${component}__content`}>
-          <img className={`${component}__image ${component}__image--desktop`} src={useBaseUrl('img/img-why-boilerplate@2x.png')} />
-          <img className={`${component}__image ${component}__image--mobile`} src={useBaseUrl('img/img-why-boilerplate-mobile@2x.png')} />
-        </div>
       </Container>
     </div>
   )

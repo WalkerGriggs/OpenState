@@ -2,10 +2,11 @@ $intro: (
   intro: (
     mobile: (
       padding-top: 70px,
-      padding-bottom: 80px,
+      padding-bottom: 96px,
     ),
     tablet: (
       padding-top: 160px,
+      padding-bottom: 128px,
     ),
   ),
   title: (
@@ -72,6 +73,7 @@ $intro: (
       margin: 0 (-$base-gutter-size * 2) 40px,
       display: flex,
       justify-content: flex-end,
+      padding-right: 48px,
     ),
     tablet: (
       position: absolute,
@@ -80,26 +82,18 @@ $intro: (
       display: block,
       margin: 0,
       transform: translateY(-50%),
+      padding-right: 96px,
     )
-  ),
-  image-bg: (
-    mobile: (
-      display: block,
-      width: 100%,
-      height: auto,
-    ),
   ),
   image-img: (
     mobile: (
       display: block,
-      position: absolute,
-      left: 50%,
-      top: 50%,
-      max-width: 75%,
-      transform: translate(-50%, -50%),
+      width: 640px,
+      height: auto,
     ),
     tablet: (
-      max-width: 75%,
+        width: 640px,
+        height: auto,
     )
   ),
 );
@@ -125,10 +119,6 @@ $intro: (
 
   &__image {
     @include responsive($intro, image);
-  }
-
-  &__image-bg {
-    @include responsive($intro, image-bg);
   }
 
   &__image-img {

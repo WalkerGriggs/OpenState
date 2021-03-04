@@ -18,8 +18,7 @@ export default function Intro() {
       >
         <div className={`${component}__title`} dangerouslySetInnerHTML={{__html: 'State<br/>Machines</br>Made Easy'}}></div>
         <div className={`${component}__image`}>
-          <img className={`${component}__image-bg`} src={useBaseUrl('img/ic-intro.svg')} />
-          <img className={`${component}__image-img`} src={useBaseUrl('img/img-boilerplate-intro@2x.png')} />
+          <img className={`${component}__image-img`} src={useBaseUrl('img/023.png')} />
         </div>
         <div className={`${component}__content`}>
           {siteConfig.tagline}
