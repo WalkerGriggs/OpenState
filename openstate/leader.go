@@ -94,15 +94,20 @@ func (s *Server) reconcile() error {
 }
 
 func (s *Server) reconcileMember(member serf.Member) error {
-	switch member.Status {
+	var err error
 
+	switch member.Status {
 	case serf.StatusAlive:
-		return s.addRaftPeer(member)
-		// case serf.StatusLeft, StatusReap:
-		//	err = s.removeRaftPeer(member, parts)
-	default:
-		return nil
+		err = s.addRaftPeer(member)
+	case serf.StatusLeft, serf.StatusFailed:
+		err = s.removeRaftPeer(member)
 	}
+
+	if err != nil {
+		s.logger.Error("Failed to reconcile member", "member", member, "error", err)
+		return err
+	}
+	return nil
 }
 
 func (s *Server) addRaftPeer(m serf.Member) error {
@@ -126,5 +131,28 @@ func (s *Server) addRaftPeer(m serf.Member) error {
 		s.logger.Error("Failed to add server to Raft cluster: %v", err)
 		return err
 	}
+	return nil
+}
+
+func (s *Server) removeRaftPeer(m serf.Member) error {
+	configFuture := s.raft.GetConfiguration()
+	if err := configFuture.Error(); err != nil {
+		return err
+	}
+
+	nodeID := m.Tags["id"]
+
+	for _, server := range configFuture.Configuration().Servers {
+		if server.ID == raft.ServerID(nodeID) {
+			s.logger.Info("Removing server", "member", m)
+
+			removeFuture := s.raft.RemoveServer(raft.ServerID(nodeID), 0, 0)
+			if err := removeFuture.Error(); err != nil {
+				s.logger.Error("Failed to reomve server from Raft cluster: %v", err)
+				return err
+			}
+		}
+	}
+
 	return nil
 }

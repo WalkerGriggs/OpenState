@@ -16,6 +16,7 @@ type ServerOptions struct {
 	SerfAdvertise string
 	RaftAdvertise string
 	Peers         string
+	SerfName      string
 }
 
 func NewServerOptions() *ServerOptions {
@@ -60,6 +61,10 @@ func (o *ServerOptions) Run() {
 		}
 	}
 
+	if o.SerfName != "" {
+		config.NodeName = o.SerfName
+	}
+
 	sep := strings.Split(o.Peers, ",")
 	if len(sep) > 0 && len(sep[0]) > 0 {
 		config.Peers = sep
@@ -91,6 +96,7 @@ func NewCmdServer() *cobra.Command {
 	cmd.Flags().StringVarP(&o.SerfAdvertise, "serf_addr", "s", o.SerfAdvertise, "Advertise address for Serf")
 	cmd.Flags().StringVarP(&o.Peers, "peers", "p", o.Peers, "Comma seperated list of peers.")
 	cmd.Flags().StringVarP(&o.LogLevel, "level", "l", o.LogLevel, "Log level [DEBUG, INFO, WARN, ERROR].")
+	cmd.Flags().StringVarP(&o.SerfName, "serf_name", "n", o.SerfName, "Node name for Serf cluster. Defaults to hostname.")
 
 	return cmd
 }

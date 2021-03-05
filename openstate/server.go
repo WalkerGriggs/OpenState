@@ -198,6 +198,11 @@ func (s *Server) Join(addrs []string) (int, error) {
 	return s.serf.Join(addrs, true)
 }
 
+// Leave removes the server from the OpenState gossip ring.
+func (s *Server) Leave() error {
+	return s.serf.Leave()
+}
+
 // TODO
 // Run holds the server routine open. This should be replaced with the endpoint
 // listener.
