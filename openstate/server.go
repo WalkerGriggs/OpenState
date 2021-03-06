@@ -21,6 +21,8 @@ type Server struct {
 	// Finite State Machine used to maintain state across Raft nodes
 	fsm *FSM
 
+	httpServer *HTTPServer
+
 	// logger is an hclog instance to better interact with Hashi's Raft config
 	logger log.InterceptLogger
 
@@ -57,6 +59,11 @@ func NewServer(c *Config) (*Server, error) {
 	s.serf, err = s.setupSerf()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start Serf: %v", err)
+	}
+
+	s.httpServer, err = s.setupHTTP()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to start the HTTPServer: %v", err)
 	}
 
 	// Handle Serf events
@@ -167,6 +174,10 @@ func (s *Server) setupSerf() (*serf.Serf, error) {
 	return serf.Create(c)
 }
 
+func (s *Server) setupHTTP() (*HTTPServer, error) {
+	return newHTTPServer(s.config)
+}
+
 // bootstrapHandler joins the OpenState gossip ring given a list of peers.
 //
 // TODO
@@ -203,10 +214,8 @@ func (s *Server) Leave() error {
 	return s.serf.Leave()
 }
 
-// TODO
-// Run holds the server routine open. This should be replaced with the endpoint
-// listener.
 func (s *Server) Run() {
-	for {
-	}
+	// HACK
+	// Use the HTTPServer to keep the function from returning
+	s.httpServer.serve()
 }

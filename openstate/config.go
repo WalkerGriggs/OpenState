@@ -17,6 +17,7 @@ import (
 const (
 	DefaultRaftPort = 7050
 	DefaultSerfPort = 4648
+	DefaultHTTPPort = 8080
 )
 
 // Config is the comprehensive list of Server options.
@@ -37,6 +38,11 @@ type Config struct {
 	//
 	// Defaults to 'false'
 	DevMode bool
+
+	// HTTPAdvertise is the advertised address of the HTTP endpoints.
+	//
+	// Defaults to "127.0.0.1:8080"
+	HTTPAdvertise *net.TCPAddr
 
 	// Logger is the logger used by the OpenState server, raft, and serf.
 	Logger log.InterceptLogger
@@ -99,6 +105,7 @@ func DefaultConfig() *Config {
 	c := &Config{
 		BootstrapExpect: 1,
 		DevMode:         false,
+		HTTPAdvertise:   DefaultHTTPAddr(),
 		LogOutput:       os.Stdout,
 		NodeID:          generateUUID(),
 		NodeName:        hostname,
@@ -130,6 +137,13 @@ func DefaultSerfAddr() *net.TCPAddr {
 	return &net.TCPAddr{
 		IP:   net.ParseIP("127.0.0.1"),
 		Port: DefaultSerfPort,
+	}
+}
+
+func DefaultHTTPAddr() *net.TCPAddr {
+	return &net.TCPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: DefaultHTTPPort,
 	}
 }
 

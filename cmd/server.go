@@ -15,6 +15,7 @@ type ServerOptions struct {
 	LogLevel      string
 	SerfAdvertise string
 	RaftAdvertise string
+	HTTPAdvertise string
 	Peers         string
 	SerfName      string
 }
@@ -61,6 +62,13 @@ func (o *ServerOptions) Run() {
 		}
 	}
 
+	if o.HTTPAdvertise != "" {
+		config.HTTPAdvertise, err = net.ResolveTCPAddr("tcp", o.HTTPAdvertise)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	if o.SerfName != "" {
 		config.NodeName = o.SerfName
 	}
@@ -94,6 +102,7 @@ func NewCmdServer() *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.RaftAdvertise, "raft_addr", "r", o.RaftAdvertise, "Advertise address for Raft")
 	cmd.Flags().StringVarP(&o.SerfAdvertise, "serf_addr", "s", o.SerfAdvertise, "Advertise address for Serf")
+	cmd.Flags().StringVarP(&o.HTTPAdvertise, "http_addr", "e", o.HTTPAdvertise, "Advertise address for the HTTP endpoints")
 	cmd.Flags().StringVarP(&o.Peers, "peers", "p", o.Peers, "Comma seperated list of peers.")
 	cmd.Flags().StringVarP(&o.LogLevel, "level", "l", o.LogLevel, "Log level [DEBUG, INFO, WARN, ERROR].")
 	cmd.Flags().StringVarP(&o.SerfName, "serf_name", "n", o.SerfName, "Node name for Serf cluster. Defaults to hostname.")
