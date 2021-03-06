@@ -8,48 +8,59 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+// monitorLeadership listens on the server's Raft leader channel, and assumes
+// leader responsibilities if neceesary. This method runs on each server, so
+// server is responsible for reliquishing these responsibilities when they are
+// no longer the leader.
 func (s *Server) monitorLeadership() {
-	var weAreLeaderCh chan struct{}
+	var serverLeaderCh chan struct{}
 	var leaderLoop sync.WaitGroup
 
-	leaderCh := s.raft.LeaderCh()
-
+	// If we are still the leader and the leaderLoop is not already running,
+	// leaderStep adds a leaderLoop routine to the waitgroup and returns.
+	//
+	// If we are not the leader and the leaderLoop is still running, leaderStep
 	leaderStep := func(isLeader bool) {
 		if isLeader {
-			if weAreLeaderCh != nil {
-				s.logger.Error("attempting to start the leader loop while running")
+			if serverLeaderCh != nil {
 				return
 			}
 
-			weAreLeaderCh = make(chan struct{})
+			serverLeaderCh = make(chan struct{})
 			leaderLoop.Add(1)
 			go func(ch chan struct{}) {
 				defer leaderLoop.Done()
 				s.leaderLoop(ch)
-			}(weAreLeaderCh)
+			}(serverLeaderCh)
 
 			return
 		}
 
-		if weAreLeaderCh == nil {
-			s.logger.Error("attempted to stop the leader loop while not running")
+		if serverLeaderCh == nil {
+			s.logger.Error("Attempted to stop the leader loop while not running")
 			return
 		}
 
-		close(weAreLeaderCh)
+		close(serverLeaderCh)
 		leaderLoop.Wait()
-		weAreLeaderCh = nil
+		serverLeaderCh = nil
 		s.logger.Info("cluster leadership lost")
 	}
 
+	// Listen over the server's leader channel. If we are the leader, call
+	// leaderStep.
+	raftLeaderCh := s.raft.LeaderCh()
+
 	for {
 		select {
-		case isLeader := <-leaderCh:
+		case isLeader := <-raftLeaderCh:
 			leaderStep(isLeader)
 		}
 	}
 }
 
+// leaderLoop handles additional Raft leader responsibilities. Namely, it
+// syncs Raft and Serf membership either 1) every minute 2) on Serf membership event.
 func (s *Server) leaderLoop(stopCh chan struct{}) {
 	var reconcileCh chan serf.Member
 
@@ -57,7 +68,9 @@ RECONCILE:
 	reconcileCh = nil
 	interval := time.After(60 * time.Second)
 
-	barrier := s.raft.Barrier(1 * time.Minute)
+	// Barrier issues a command that blocks until all preceeding operations have
+	// been applied to the FSM. It ensures the FSM reflects all queued writes.
+	barrier := s.raft.Barrier(60 * time.Second)
 	if err := barrier.Error(); err != nil {
 		s.logger.Error("Failed to wait for barrier %v\n", err)
 		goto WAIT
@@ -83,6 +96,7 @@ WAIT:
 	}
 }
 
+// reconcile is used to sync members from Serf to Raft.
 func (s *Server) reconcile() error {
 	members := s.serf.Members()
 	for _, member := range members {
@@ -93,6 +107,7 @@ func (s *Server) reconcile() error {
 	return nil
 }
 
+// reconcile is used to sync a specific member from Serf to Raft.
 func (s *Server) reconcileMember(member serf.Member) error {
 	var err error
 
@@ -104,12 +119,13 @@ func (s *Server) reconcileMember(member serf.Member) error {
 	}
 
 	if err != nil {
-		s.logger.Error("Failed to reconcile member", "member", member, "error", err)
+		s.logger.Error("Failed to reconcile member", "member", member.Name, "error", err)
 		return err
 	}
 	return nil
 }
 
+// addRaft adds a Serf member as a Raft peer. This function is idempotent.
 func (s *Server) addRaftPeer(m serf.Member) error {
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
@@ -134,6 +150,7 @@ func (s *Server) addRaftPeer(m serf.Member) error {
 	return nil
 }
 
+// removeRaftPeer removes a Serf member from Raft peers. This function is idempotent.
 func (s *Server) removeRaftPeer(m serf.Member) error {
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
@@ -153,6 +170,5 @@ func (s *Server) removeRaftPeer(m serf.Member) error {
 			}
 		}
 	}
-
 	return nil
 }
