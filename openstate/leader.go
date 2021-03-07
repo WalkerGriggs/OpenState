@@ -132,7 +132,7 @@ func (s *Server) addRaftPeer(m serf.Member) error {
 		return err
 	}
 
-	addr := m.Tags["addr"]
+	addr := m.Tags["raft_addr"]
 	nodeID := m.Tags["id"]
 
 	for _, server := range configFuture.Configuration().Servers {

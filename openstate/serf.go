@@ -1,6 +1,7 @@
 package openstate
 
 import (
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -25,13 +26,16 @@ func (s *Server) serfEventHandler() {
 // memberJoin handles serf.EventMemberJoin.
 func (s *Server) memberJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		// TODO: check if member is a valid OpenState server
-		//       see isNomadServer()
+		parts, ok := isServer(m)
+		if !ok {
+			s.logger.Warn("Non-server in gossip ring.")
+			continue
+		}
 
 		// TODO: check if the server is a known peer
 
 		s.logger.Info("Adding peer", "peer", m.Name)
-		s.peers = append(s.peers, m.Name)
+		s.peers[raft.ServerAddress(parts.raft_addr.String())] = parts
 	}
 
 	s.memberEvent(me)
@@ -46,22 +50,14 @@ func (s *Server) memberLeave(me serf.MemberEvent) {
 // memberFailed handles serf.EventMemberFailed.
 func (s *Server) memberFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		// TODO: check if member is a valid OpenState server
-		//       see isNomadServer()
+		parts, ok := isServer(m)
+		if !ok {
+			s.logger.Warn("Non-server in gossip ring.")
+			continue
+		}
 
 		s.logger.Info("Removing peer", "peer", m.Name)
-
-		existing := s.peers
-		n := len(existing)
-		for i := 0; i < n; i++ {
-			if existing[i] == m.Name {
-				existing[i], existing[n-1] = existing[n-1], ""
-				existing = existing[:n-1]
-				n--
-				break
-			}
-		}
-		s.peers = existing
+		delete(s.peers, raft.ServerAddress(parts.raft_addr.String()))
 
 		// Is this the best way to handle a Serf node heading offline without
 		// service discovery?

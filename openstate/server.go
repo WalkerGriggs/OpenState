@@ -21,13 +21,11 @@ type Server struct {
 	// Finite State Machine used to maintain state across Raft nodes
 	fsm *FSM
 
-	httpServer *HTTPServer
-
 	// logger is an hclog instance to better interact with Hashi's Raft config
 	logger log.InterceptLogger
 
 	// peers tracks known OpenState servers
-	peers []string
+	peers map[raft.ServerAddress]*serverParts
 
 	// raft is used for strong consistency and replicated state
 	raft      *raft.Raft
@@ -47,6 +45,7 @@ func NewServer(c *Config) (*Server, error) {
 		logger:      c.Logger,
 		eventCh:     make(chan serf.Event, 256),
 		reconcileCh: make(chan serf.Member, 32),
+		peers:       make(map[raft.ServerAddress]*serverParts),
 	}
 
 	var err error
@@ -59,11 +58,6 @@ func NewServer(c *Config) (*Server, error) {
 	s.serf, err = s.setupSerf()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start Serf: %v", err)
-	}
-
-	s.httpServer, err = s.setupHTTP()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to start the HTTPServer: %v", err)
 	}
 
 	// Handle Serf events
@@ -152,8 +146,10 @@ func (s *Server) setupSerf() (*serf.Serf, error) {
 
 	// Tag the Serf member
 	c.Tags["role"] = "openstate"
-	c.Tags["addr"] = s.config.RaftAdvertise.String()
 	c.Tags["id"] = s.config.NodeID
+	c.Tags["raft_addr"] = s.config.RaftAdvertise.String()
+	c.Tags["serf_addr"] = s.config.SerfAdvertise.String()
+	c.Tags["http_addr"] = s.config.HTTPAdvertise.String()
 
 	// Setup logging
 	logger := s.logger.StandardLogger(&log.StandardLoggerOptions{InferLevels: true})
@@ -172,10 +168,6 @@ func (s *Server) setupSerf() (*serf.Serf, error) {
 	c.MemberlistConfig.AdvertisePort = s.config.SerfAdvertise.Port
 
 	return serf.Create(c)
-}
-
-func (s *Server) setupHTTP() (*HTTPServer, error) {
-	return newHTTPServer(s.config)
 }
 
 // bootstrapHandler joins the OpenState gossip ring given a list of peers.
@@ -197,6 +189,16 @@ func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
 
+// getLeader returns if the current server is the leader, and, if not, then it
+// returns the address of the leader.
+func (s *Server) getLeader() (bool, raft.ServerAddress) {
+	if s.IsLeader() {
+		return true, ""
+	}
+
+	return false, s.raft.Leader()
+}
+
 // isSingleServerCluster returns true if the expected number of bootstrapped
 // servers is 1, otherwise false.
 func (s *Server) isSingleServerCluster() bool {
@@ -214,8 +216,8 @@ func (s *Server) Leave() error {
 	return s.serf.Leave()
 }
 
+// Keep-alive hack
 func (s *Server) Run() {
-	// HACK
-	// Use the HTTPServer to keep the function from returning
-	s.httpServer.serve()
+	for {
+	}
 }

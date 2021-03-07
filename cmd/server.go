@@ -84,6 +84,8 @@ func (o *ServerOptions) Run() {
 		panic(err)
 	}
 
+	openstate.NewHTTPServer(server, config)
+
 	server.Run()
 }
 

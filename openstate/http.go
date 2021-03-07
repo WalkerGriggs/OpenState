@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
 	log "github.com/hashicorp/go-hclog"
 )
 
+// HTTPServer wraps Server and exposes it over an HTTP interface.
 type HTTPServer struct {
+	server *Server
+
 	// Address the HTTPServer listens on
 	addr string
 
@@ -27,8 +31,8 @@ type HTTPServer struct {
 	listenerCh chan struct{}
 }
 
-// newHTTPServer returns a new HTTPServ object. Note,
-func newHTTPServer(c *Config) (*HTTPServer, error) {
+// newHTTPServer returns a new HTTPServ object.
+func NewHTTPServer(s *Server, c *Config) (*HTTPServer, error) {
 	mux := http.NewServeMux()
 
 	addr, err := net.ResolveTCPAddr("tcp", c.HTTPAdvertise.String())
@@ -41,33 +45,33 @@ func newHTTPServer(c *Config) (*HTTPServer, error) {
 		return nil, fmt.Errorf("Failed to start HTTP listener: %v", err)
 	}
 
-	s := &HTTPServer{
+	srv := &HTTPServer{
+		server:     s,
 		mux:        mux,
 		logger:     c.Logger,
 		listener:   ln,
 		listenerCh: make(chan struct{}),
 	}
 
-	s.registerHandlers()
+	srv.registerHandlers()
 
-	return s, nil
-}
-
-// serve wraps a net/http Server's Serve() method using the HTTPServer's mux,
-// address, and listener.
-func (s *HTTPServer) serve() error {
 	httpServer := http.Server{
-		Addr:    s.addr,
-		Handler: s.mux,
+		Addr:    srv.addr,
+		Handler: srv.mux,
 	}
 
-	defer close(s.listenerCh)
-	return httpServer.Serve(s.listener)
+	go func() {
+		defer close(srv.listenerCh)
+		httpServer.Serve(ln)
+	}()
+
+	return srv, nil
 }
 
 // registerHandlers maps each handler to an endpoint on the mux.
 func (s *HTTPServer) registerHandlers() {
-	s.mux.HandleFunc("/v1/names", s.wrap(s.NamesRequest))
+	s.mux.HandleFunc("/v1/names", s.wrap(s.namesRequest))
+	s.mux.HandleFunc("/v1/name/", s.wrap(s.nameSpecificRequest))
 }
 
 // wrap wraps the handler function with some quality-of-life improvements. It
@@ -105,4 +109,29 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 	}
 
 	return f
+}
+
+func (s *HTTPServer) forward(resp http.ResponseWriter, req *http.Request) (bool, error) {
+	isLeader, address := s.server.getLeader()
+	if isLeader {
+		return false, nil
+	}
+
+	parts := s.server.peers[address]
+
+	// TODO
+	//   - scheme shouldn't be hardcoded
+	//   - we shouldn't assume the request URL is a relative path
+	u := url.URL{
+		Scheme: "http",
+		Host:   parts.http_addr.String(),
+		Path:   req.URL.String(),
+	}
+
+	header := resp.Header()
+	header.Set("Location", u.String())
+	header.Set("Content-Type", "text/html; charset=utf-8")
+	resp.WriteHeader(http.StatusPermanentRedirect)
+
+	return true, nil
 }
