@@ -97,18 +97,13 @@ type Config struct {
 }
 
 func DefaultConfig() *Config {
-	hostname, err := os.Hostname()
-	if err != nil {
-		panic(err)
-	}
-
 	c := &Config{
 		BootstrapExpect: 1,
 		DevMode:         false,
 		HTTPAdvertise:   DefaultHTTPAddr(),
 		LogOutput:       os.Stdout,
 		NodeID:          generateUUID(),
-		NodeName:        hostname,
+		NodeName:        "",
 		Peers:           make([]string, 0),
 		RaftAdvertise:   DefaultRaftAddr(),
 		RaftConfig:      raft.DefaultConfig(),

@@ -1,28 +1,14 @@
 package cmd
 
 import (
-	"net"
 	"os"
 	"strings"
 
 	log "github.com/hashicorp/go-hclog"
-	homedir "github.com/mitchellh/go-homedir"
-
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+
 	"github.com/walkergriggs/openstate/openstate"
 )
-
-type ServerOptions struct {
-	LogLevel        string
-	SerfAdvertise   string
-	RaftAdvertise   string
-	HTTPAdvertise   string
-	Peers           string
-	NodeName        string
-	ConfigPath      string
-	BootstrapExpect int
-}
 
 func ServerUsageTemplate() string {
 	helpText := `
@@ -76,98 +62,56 @@ Server Options:
 	return strings.TrimSpace(helpText)
 }
 
+// ServerOptions wraps the Config and any additional flags needed to run a new
+// server.
+type ServerOptions struct {
+	config     *Config
+	configPath string
+}
+
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
-		LogLevel:        "INFO",
-		BootstrapExpect: 1,
+		config: &Config{
+			Addrs:  &AdvertiseAddrs{},
+			Server: &ServerConfig{},
+		},
 	}
 }
 
-func (o *ServerOptions) Complete(cmd *cobra.Command, args []string) error {
-	return nil
-}
+// Run reads in the config file, overwrites any values with flags, and starts
+// the server.
+func (o *ServerOptions) Run() {
+	// Read the config file and unmarshal the results
+	config, err := unmarshalConfig(o.configPath)
+	if err != nil {
+		return
+	}
 
-func (o *ServerOptions) Validate(cmd *cobra.Command, args []string) error {
-	return nil
-}
+	// Overwrite config with command flags
+	config = config.merge(o.config)
 
-func (o *ServerOptions) extractToConfig(config *openstate.Config) error {
-	config.Logger = log.NewInterceptLogger(&log.LoggerOptions{
+	// Convert cmd.Config to openstate.Config
+	serverConfig, err := config.ctoc()
+	if err != nil {
+		return
+	}
+
+	// Set the logger
+	// TODO Extract this to it's own "finalize" function
+	serverConfig.Logger = log.NewInterceptLogger(&log.LoggerOptions{
 		Name:   "OpenState",
-		Level:  log.LevelFromString(o.LogLevel),
+		Level:  log.LevelFromString(config.LogLevel),
 		Output: os.Stdout,
 	})
 
-	var err error
-
-	// Extract the raft-address if provided.
-	if o.RaftAdvertise != "" {
-		config.RaftAdvertise, err = net.ResolveTCPAddr("tcp", o.RaftAdvertise)
-		if err != nil {
-			config.Logger.Error("Failed to resolve Raft address", "error", err.Error())
-			return err
-		}
-	}
-
-	// Extract the serf-address if provided.
-	if o.SerfAdvertise != "" {
-		config.SerfAdvertise, err = net.ResolveTCPAddr("tcp", o.SerfAdvertise)
-		if err != nil {
-			config.Logger.Error("Failed to resolve Serf address", "error", err.Error())
-			return err
-		}
-	}
-
-	// Extract the http-address if provided.
-	if o.HTTPAdvertise != "" {
-		config.HTTPAdvertise, err = net.ResolveTCPAddr("tcp", o.HTTPAdvertise)
-		if err != nil {
-			config.Logger.Error("Failed to resolve HTTP address", "error", err.Error())
-			return err
-		}
-	}
-
-	// Extract the node-name if provided.
-	if o.NodeName != "" {
-		config.NodeName = o.NodeName
-	}
-
-	// Extract bootstrap-expect and log-level
-	config.BootstrapExpect = o.BootstrapExpect
-
-	// Separate and set peer list.
-	sep := strings.Split(o.Peers, ",")
-	if len(sep) > 0 && len(sep[0]) > 0 {
-		config.Peers = sep
-	}
-
-	return nil
-}
-
-func (o *ServerOptions) Run() {
-	// Create default config
-	config := openstate.DefaultConfig()
-
-	// Read the config file and override server config defaults.
-	if err := readConfig(o.ConfigPath); err != nil {
-		return
-	}
-
-	extractConfig(config)
-
-	// Override defaults and config file with flag values
-	if err := o.extractToConfig(config); err != nil {
-		return
-	}
-
-	// Configure a new server.
-	server, err := openstate.NewServer(config)
+	// Create the new server
+	server, err := openstate.NewServer(serverConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	// Expose the server via HTTP endpoints.
-	openstate.NewHTTPServer(server, config)
+	// Wrap the server and expose it over HTTP endpoints
+	openstate.NewHTTPServer(server, serverConfig)
 
 	// Off to the races!
 	server.Run()
@@ -177,100 +121,30 @@ func (o *ServerOptions) Run() {
 // adds the flags
 func NewCmdServer() *cobra.Command {
 	o := NewServerOptions()
+	config := o.config
 
 	cmd := &cobra.Command{
 		Use: "server",
 		Run: func(cmd *cobra.Command, args []string) {
-			o.Complete(cmd, args)
-			o.Validate(cmd, args)
 			o.Run()
 		},
 	}
 
 	cmd.SetUsageTemplate(ServerUsageTemplate())
 
-	cmd.Flags().StringVarP(&o.RaftAdvertise, "raft-address", "", o.RaftAdvertise, "")
-	cmd.Flags().StringVarP(&o.SerfAdvertise, "serf-address", "", o.SerfAdvertise, "")
-	cmd.Flags().StringVarP(&o.HTTPAdvertise, "http-address", "", o.HTTPAdvertise, "")
-	cmd.Flags().StringVarP(&o.Peers, "join", "", o.Peers, "")
-	cmd.Flags().StringVarP(&o.LogLevel, "log-level", "", o.LogLevel, "")
-	cmd.Flags().StringVarP(&o.NodeName, "node-name", "", o.NodeName, "")
-	cmd.Flags().StringVarP(&o.ConfigPath, "config", "", o.ConfigPath, "")
-	cmd.Flags().IntVarP(&o.BootstrapExpect, "bootstrap-expect", "", o.BootstrapExpect, "")
+	// Address Flags
+	cmd.Flags().StringVar(&config.Addrs.Raft, "raft-address", config.Addrs.Raft, "")
+	cmd.Flags().StringVar(&config.Addrs.Serf, "serf-address", config.Addrs.Serf, "")
+	cmd.Flags().StringVar(&config.Addrs.HTTP, "http-address", config.Addrs.HTTP, "")
+
+	// Server Flags
+	cmd.Flags().StringSliceVar(&config.Server.Join, "join", config.Server.Join, "")
+	cmd.Flags().StringVar(&config.Server.NodeName, "node-name", config.Server.NodeName, "")
+	cmd.Flags().IntVar(&config.Server.BootstrapExpect, "bootstrap-expect", config.Server.BootstrapExpect, "")
+
+	// General Flags
+	cmd.Flags().StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
+	cmd.Flags().StringVar(&o.configPath, "config", o.configPath, "")
 
 	return cmd
-}
-
-// readConfig reads in the config file from $HOME/.openstate or the proided
-// path.
-func readConfig(path string) error {
-	home, err := homedir.Dir()
-	if err != nil {
-		return err
-	}
-
-	if path == "" {
-		viper.AddConfigPath(home + "/.openstate/")
-		viper.SetConfigName("config")
-
-		if err := viper.ReadInConfig(); err != nil {
-			return err
-		}
-	} else {
-		// TODO don't hardcode the config type
-		viper.SetConfigType("yaml")
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-
-		if err := viper.ReadConfig(file); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// extractConfig extracts and parses config values from Viper.
-func extractConfig(config *openstate.Config) error {
-	var err error
-
-	raft_addr := viper.GetString("raft-address")
-	if raft_addr != "" {
-		config.RaftAdvertise, err = net.ResolveTCPAddr("tcp", raft_addr)
-		if err != nil {
-			return err
-		}
-	}
-
-	serf_addr := viper.GetString("serf-address")
-	if raft_addr != "" {
-		config.SerfAdvertise, err = net.ResolveTCPAddr("tcp", serf_addr)
-		if err != nil {
-			return err
-		}
-	}
-
-	http_addr := viper.GetString("http-address")
-	if raft_addr != "" {
-		config.HTTPAdvertise, err = net.ResolveTCPAddr("tcp", http_addr)
-		if err != nil {
-			return err
-		}
-	}
-
-	node_name := viper.GetString("node-name")
-	if node_name != "" {
-		config.NodeName = node_name
-	}
-
-	bootstrap_expect := viper.GetInt("bootstrap-expect")
-	if bootstrap_expect != 0 {
-		config.BootstrapExpect = bootstrap_expect
-	}
-
-	config.Peers = viper.GetStringSlice("join")
-
-	return nil
 }
