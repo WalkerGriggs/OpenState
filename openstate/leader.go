@@ -72,12 +72,12 @@ RECONCILE:
 	// been applied to the FSM. It ensures the FSM reflects all queued writes.
 	barrier := s.raft.Barrier(60 * time.Second)
 	if err := barrier.Error(); err != nil {
-		s.logger.Error("Failed to wait for barrier %v\n", err)
+		s.logger.Error("Failed to wait for barrier", "error", err.Error())
 		goto WAIT
 	}
 
 	if err := s.reconcile(); err != nil {
-		s.logger.Error("Failed to reconcile: %v\n", err)
+		s.logger.Error("Failed to reconcile", "error", err.Error())
 		goto WAIT
 	}
 
@@ -119,7 +119,6 @@ func (s *Server) reconcileMember(member serf.Member) error {
 	}
 
 	if err != nil {
-		s.logger.Error("Failed to reconcile member", "member", member.Name, "error", err)
 		return err
 	}
 	return nil
@@ -133,18 +132,18 @@ func (s *Server) addRaftPeer(m serf.Member) error {
 	}
 
 	addr := m.Tags["raft_addr"]
-	nodeID := m.Tags["id"]
+	nodeName := m.Tags["node_name"]
 
 	for _, server := range configFuture.Configuration().Servers {
-		if server.Address == raft.ServerAddress(addr) && server.ID == raft.ServerID(nodeID) {
+		if server.Address == raft.ServerAddress(addr) && server.ID == raft.ServerID(nodeName) {
 			return nil
 		}
 		// TODO - handle if the server has a mismatched address or server ID
 	}
 
-	addFuture := s.raft.AddVoter(raft.ServerID(nodeID), raft.ServerAddress(addr), 0, 0)
+	addFuture := s.raft.AddVoter(raft.ServerID(nodeName), raft.ServerAddress(addr), 0, 0)
 	if err := addFuture.Error(); err != nil {
-		s.logger.Error("Failed to add server to Raft cluster: %v", err)
+		s.logger.Error("Failed to add server to Raft cluster", "error", err.Error())
 		return err
 	}
 	return nil
@@ -157,15 +156,15 @@ func (s *Server) removeRaftPeer(m serf.Member) error {
 		return err
 	}
 
-	nodeID := m.Tags["id"]
+	nodeName := m.Tags["node_name"]
 
 	for _, server := range configFuture.Configuration().Servers {
-		if server.ID == raft.ServerID(nodeID) {
+		if server.ID == raft.ServerID(nodeName) {
 			s.logger.Info("Removing server", "member", m)
 
-			removeFuture := s.raft.RemoveServer(raft.ServerID(nodeID), 0, 0)
+			removeFuture := s.raft.RemoveServer(raft.ServerID(nodeName), 0, 0)
 			if err := removeFuture.Error(); err != nil {
-				s.logger.Error("Failed to reomve server from Raft cluster: %v", err)
+				s.logger.Error("Failed to remove server from Raft cluster", "error", err.Error())
 				return err
 			}
 		}

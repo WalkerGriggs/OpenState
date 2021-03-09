@@ -4,9 +4,11 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
 	"time"
 
 	log "github.com/hashicorp/go-hclog"
+	homedir "github.com/mitchellh/go-homedir"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
@@ -33,11 +35,18 @@ type Config struct {
 	// Defaults to 1
 	BootstrapExpect int
 
-	// DevMode indicates if the server is run in development mode. Dev mode limits
-	// persistence and state to in-memory.
+	// DevMode indicates if the OpenState server should run in development mode.
+	// This disables the log, stable, and snapshot stores, and uses a simple
+	// in-memory store instead.
 	//
 	// Defaults to 'false'
 	DevMode bool
+
+	// DataDirectory is a path to directory where OpenState stores state related
+	// objects; primarily snapshots, logs, and the stable store.
+	//
+	// Defaults to $HOME/.openstate/
+	DataDirectory string
 
 	// HTTPAdvertise is the advertised address of the HTTP endpoints.
 	//
@@ -97,9 +106,15 @@ type Config struct {
 }
 
 func DefaultConfig() *Config {
+	home, err := homedir.Dir()
+	if err != nil {
+		return nil
+	}
+
 	c := &Config{
 		BootstrapExpect: 1,
 		DevMode:         false,
+		DataDirectory:   path.Join(home, ".openstate"),
 		HTTPAdvertise:   DefaultHTTPAddr(),
 		LogOutput:       os.Stdout,
 		NodeID:          generateUUID(),
@@ -117,6 +132,7 @@ func DefaultConfig() *Config {
 	c.SerfConfig.MemberlistConfig.AdvertisePort = DefaultSerfPort
 
 	c.RaftConfig.ShutdownOnRemove = false
+	c.RaftConfig.SnapshotThreshold = 250
 
 	return c
 }

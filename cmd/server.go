@@ -22,6 +22,10 @@ Usage: openstate server [options]
 
 General Options:
 
+	--dev
+		Run the server in development mode. This disables the log, stable,
+		and snapshot stores, and uses a simple in-memory store instead.
+
 	--log-level=<level>
 		The verbosity of OpenState's logger. Options include DEBUG, INFO,
 		WARN, and ERROR. Defaults to INFO.
@@ -29,6 +33,10 @@ General Options:
 	--config=<path>
 		Path to the config file. For the time being, this must be an
 		absolute path. Defaults to $HOME/.openstate/config.yaml.
+
+	--data-dir=<path>
+		Path to directory where OpenState stores state related objects;
+		primarily snapshots, logs, and the stable store.
 
 Server Options:
 
@@ -143,7 +151,9 @@ func NewCmdServer() *cobra.Command {
 	cmd.Flags().IntVar(&config.Server.BootstrapExpect, "bootstrap-expect", config.Server.BootstrapExpect, "")
 
 	// General Flags
+	cmd.Flags().BoolVar(&config.DevMode, "dev", config.DevMode, "")
 	cmd.Flags().StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
+	cmd.Flags().StringVar(&config.DataDirectory, "data-dir", config.DataDirectory, "")
 	cmd.Flags().StringVar(&o.configPath, "config", o.configPath, "")
 
 	return cmd

@@ -14,6 +14,15 @@ type (
 	// Config is the umbrella struct with encompasses every configurable value in
 	// OpenState's config file.
 	Config struct {
+		// DevMode indicates if the OpenState server should run in development mode.
+		// This disables the log, stable, and snapshot stores, and uses a simple
+		// in-memory store instead.
+		DevMode bool `mapstructure:"dev_mode"`
+
+		// DataDirectory is a path to directory where OpenState stores state related
+		// objects; primarily snapshots, logs, and the stable store.
+		DataDirectory string `mapstructure:data_directory`
+
 		// LogLevel is the verbosity of OpenState's logger. Options include: DEBUG,
 		// INFO, WARN, and ERROR. See hashicorp/hclog for more info.
 		LogLevel string `mapstructure:"log_level"`
@@ -58,6 +67,14 @@ func (a *Config) merge(b *Config) *Config {
 
 	if b.LogLevel != "" {
 		res.LogLevel = b.LogLevel
+	}
+
+	if b.DevMode != false {
+		res.DevMode = b.DevMode
+	}
+
+	if b.DataDirectory != "" {
+		res.DataDirectory = b.DataDirectory
 	}
 
 	// Set the server configs, or merge if necessary.
@@ -133,6 +150,14 @@ func (conf *Config) ctoc() (*openstate.Config, error) {
 
 	if conf.Server.Join != nil {
 		serverConf.Peers = conf.Server.Join
+	}
+
+	if conf.DevMode != false {
+		serverConf.DevMode = conf.DevMode
+	}
+
+	if conf.DataDirectory != "" {
+		serverConf.DataDirectory = conf.DataDirectory
 	}
 
 	var err error

@@ -10,6 +10,11 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+const (
+	// Number of snapshots retained on disk
+	snapshotRetention = 5
+)
+
 // Server is the OpenState server which manages tasks etc.
 type Server struct {
 	// Server configuration with reasonable defaults.
@@ -19,7 +24,7 @@ type Server struct {
 	eventCh chan serf.Event
 
 	// Finite State Machine used to maintain state across Raft nodes
-	fsm *FSM
+	fsm *fsm
 
 	// logger is an hclog instance to better interact with Hashi's Raft config
 	logger log.InterceptLogger
@@ -76,12 +81,12 @@ func NewServer(c *Config) (*Server, error) {
 func (s *Server) setupRaft() (*raft.Raft, error) {
 	config := s.config.RaftConfig
 
-	// Update configs
-	config.Logger = s.logger
-	config.LocalID = raft.ServerID(s.config.NodeID)
+	// In order to restore from snapshots, the local ID cannot change. Using the
+	// NodeName is probably ill-advised and is subject to change.
+	config.LocalID = raft.ServerID(s.config.NodeName)
 
 	// Initialize the server's FSM
-	fsmConfig := &FSMConfig{
+	fsmConfig := &fsmConfig{
 		Logger: s.logger,
 	}
 
@@ -92,15 +97,11 @@ func (s *Server) setupRaft() (*raft.Raft, error) {
 	}
 
 	// Initialize the TCP transport layer
-	trans, err := raft.NewTCPTransport(s.config.RaftAdvertise.String(),
-		s.config.RaftAdvertise, 3, s.config.RaftTimeout, s.config.LogOutput,
-	)
+	trans, err := raft.NewTCPTransport(s.config.RaftAdvertise.String(), s.config.RaftAdvertise, 3, s.config.RaftTimeout, s.config.LogOutput)
 	if err != nil {
 		return nil, err
 	}
 
-	/// START TODO
-	// For development purposes only. Add persistent storage layer
 	var log raft.LogStore
 	var stable raft.StableStore
 	var snap raft.SnapshotStore
@@ -109,8 +110,15 @@ func (s *Server) setupRaft() (*raft.Raft, error) {
 	s.raftInmem = store
 	stable = store
 	log = store
-	snap = raft.NewDiscardSnapshotStore()
-	/// END TODO
+
+	if s.config.DevMode {
+		snap = raft.NewDiscardSnapshotStore()
+	} else {
+		snap, err = raft.NewFileSnapshotStore(s.config.DataDirectory, snapshotRetention, s.config.LogOutput)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create new FileSnapshotStore: %v\n", err.Error())
+		}
+	}
 
 	// Bootstrap the cluster if this is the only server and does not have
 	// existing state.
@@ -121,17 +129,24 @@ func (s *Server) setupRaft() (*raft.Raft, error) {
 		}
 
 		if !hasState {
-			configuration := raft.Configuration{
-				Servers: []raft.Server{
-					{
-						ID:      config.LocalID,
-						Address: trans.LocalAddr(),
-					},
-				},
+			hasState, err := raft.HasExistingState(log, stable, snap)
+			if err != nil {
+				return nil, err
 			}
 
-			if err := raft.BootstrapCluster(config, log, stable, snap, trans, configuration); err != nil {
-				return nil, err
+			if !hasState {
+				raftConfig := raft.Configuration{
+					Servers: []raft.Server{
+						{
+							ID:      config.LocalID,
+							Address: trans.LocalAddr(),
+						},
+					},
+				}
+
+				if err := raft.BootstrapCluster(config, log, stable, snap, trans, raftConfig); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -146,7 +161,8 @@ func (s *Server) setupSerf() (*serf.Serf, error) {
 
 	// Tag the Serf member
 	c.Tags["role"] = "openstate"
-	c.Tags["id"] = s.config.NodeID
+	c.Tags["node_id"] = s.config.NodeID
+	c.Tags["node_name"] = s.config.NodeName
 	c.Tags["raft_addr"] = s.config.RaftAdvertise.String()
 	c.Tags["serf_addr"] = s.config.SerfAdvertise.String()
 	c.Tags["http_addr"] = s.config.HTTPAdvertise.String()
