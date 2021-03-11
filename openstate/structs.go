@@ -1,11 +1,15 @@
 package openstate
 
+import (
+	"github.com/walkergriggs/openstate/api"
+)
+
 type MessageType uint8
 
 const (
-	NameAddRequestType MessageType = 0
+	TaskDefineRequestType MessageType = 0
 )
 
-type NameAddRequest struct {
-	Name string
+type TaskDefineRequest struct {
+	Task *api.Task
 }

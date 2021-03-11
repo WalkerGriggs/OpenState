@@ -1,0 +1,101 @@
+package cmd
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
+
+	"github.com/walkergriggs/openstate/api"
+)
+
+func TaskDefineUsageTemplate() string {
+	helpText := `
+Usage: openstate task define <path> [options]
+
+	Define a new or update an existing Task using the definition file
+	at <path>. For the time being, this path must be absolute.
+
+General Options:
+
+	--address=<address>
+		The host:port pair of an OpenState server HTTP endpoint. This
+		endpoint can be any server in the cluster; the request will be
+		forwarded to the leader.
+`
+	return strings.TrimSpace(helpText)
+}
+
+type TaskDefineOptions struct {
+	path string
+}
+
+func NewTaskDefineOptions() *TaskDefineOptions {
+	return &TaskDefineOptions{}
+}
+
+func (o *TaskDefineOptions) Complete(cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("task define takes exactly 1 argument")
+	}
+
+	o.path = args[0]
+	return nil
+}
+
+func (o *TaskDefineOptions) Run() {
+	f, err := os.Open(o.path)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	task := &api.Task{
+		FSM: &api.FSM{
+			Events: make([]*api.Event, 0),
+		},
+	}
+
+	yaml.Unmarshal(b, task)
+
+	client, err := api.NewClient()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	_, err = client.Tasks().Define(task)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+func NewCmdTaskDefine() *cobra.Command {
+	o := NewTaskDefineOptions()
+
+	cmd := &cobra.Command{
+		Use: "define",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := o.Complete(cmd, args); err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			o.Run()
+		},
+	}
+
+	cmd.SetUsageTemplate(TaskDefineUsageTemplate())
+
+	return cmd
+}

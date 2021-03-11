@@ -13,13 +13,13 @@ task definition and lifecycle management.
 The current feature set includes:
 
 - Raft and Serf instrumentation for strong consistency
+- Task definitions and an event-driven Finite State Machine framework
 
 ### Future
 
 A number of these items are aspirational, but might form some semblance of a
 roadmap. Pull requests are always welcome, of course!
 
-- Task definitions and an event-driven Finite State Machine framework
 - Typed task callbacks and pluggable runtime drivers.
   - Docker support for various environments (locally & Kubernetes)
   - Pre-defined callbacks for HTTP, SMTP, Kafka etc.

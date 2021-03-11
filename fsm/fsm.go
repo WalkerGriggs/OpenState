@@ -1,8 +1,12 @@
 package fsm
 
-type FSMConfig struct {
-	logger log.Logger
-}
+import (
+	"fmt"
+	"sync"
+)
+
+// FSMConfig is a no-op for now.
+type FSMConfig struct{}
 
 // FSM is the core Finite State Machine implementation. And follows a strict,
 // graph-defined architecture where are transitions are event-based.
@@ -25,7 +29,8 @@ type FSM struct {
 	transitions map[eParts]string
 }
 
-// Event describes a single event, its origin states, and its intended destination
+// Event describes a single event, its origin states, and its intended
+// destination state
 type Event struct {
 	// Name is the event identifier and should be unique acrosss the state machine
 	Name string
@@ -38,7 +43,7 @@ type Event struct {
 	Src []string
 }
 
-type Events []Event
+type Events []*Event
 
 // eParts describes the component parts of specific event/src pair. It is used
 // as a unique key to map FSM transitions.
@@ -55,6 +60,7 @@ func NewFSM(config *FSMConfig, initial string, events Events) (*FSM, error) {
 		current:     initial,
 		config:      config,
 		transitions: make(map[eParts]string),
+		stateMu:     &sync.RWMutex{},
 	}
 
 	for _, event := range events {
@@ -98,6 +104,8 @@ func (fsm *FSM) Do(event string) error {
 		return fmt.Errorf("FSM cannot %s\n", event)
 	}
 
+	fsm.stateMu.RUnlock()
+	defer fsm.stateMu.RLock()
 	fsm.transition(dst)
 	return nil
 }

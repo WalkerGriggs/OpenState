@@ -70,8 +70,7 @@ func NewHTTPServer(s *Server, c *Config) (*HTTPServer, error) {
 
 // registerHandlers maps each handler to an endpoint on the mux.
 func (s *HTTPServer) registerHandlers() {
-	s.mux.HandleFunc("/v1/names", s.wrap(s.namesRequest))
-	s.mux.HandleFunc("/v1/name/", s.wrap(s.nameSpecificRequest))
+	s.mux.HandleFunc("/v1/tasks", s.wrap(s.tasksRequest))
 }
 
 // wrap wraps the handler function with some quality-of-life improvements. It

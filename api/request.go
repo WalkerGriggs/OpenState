@@ -37,7 +37,7 @@ type request struct {
 	ctx context.Context
 }
 
-// setQueryOptions unpacks QueryOptions into the request pararms map.
+// setQueryOptions unpacks QueryOptions into the request params map.
 func (r *request) setQueryOptions(q *QueryOptions) {
 	if q == nil {
 		return
@@ -52,6 +52,15 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 
 	r.ctx = q.Context()
+}
+
+// setWriteOptions unpacks WriteOptions into the request params map.
+func (r *request) setWriteOptions(w *WriteOptions) {
+	if w == nil {
+		return
+	}
+
+	r.ctx = w.Context()
 }
 
 // toHTTP converts our request abstraction to an actual http.Request.

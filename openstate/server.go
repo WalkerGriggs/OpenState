@@ -24,7 +24,7 @@ type Server struct {
 	eventCh chan serf.Event
 
 	// Finite State Machine used to maintain state across Raft nodes
-	fsm *fsm
+	fsm *openstateFSM
 
 	// logger is an hclog instance to better interact with Hashi's Raft config
 	logger log.InterceptLogger
@@ -86,7 +86,7 @@ func (s *Server) setupRaft() (*raft.Raft, error) {
 	config.LocalID = raft.ServerID(s.config.NodeName)
 
 	// Initialize the server's FSM
-	fsmConfig := &fsmConfig{
+	fsmConfig := &openstateFSMConfig{
 		Logger: s.logger,
 	}
 

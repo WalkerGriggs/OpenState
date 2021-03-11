@@ -51,8 +51,40 @@ func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) error 
 		return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf)
 	}
 
-	if err := decodeBody(resp, out); err != nil {
+	if out != nil {
+		if err := decodeBody(resp, &out); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) error {
+	r, err := c.newRequest("POST", endpoint)
+	if err != nil {
 		return err
+	}
+
+	r.obj = in
+	r.setWriteOptions(q)
+
+	resp, err := c.doRequest(r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		var buf bytes.Buffer
+		io.Copy(&buf, resp.Body)
+		return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf)
+	}
+
+	if out != nil {
+		if err := decodeBody(resp, &out); err != nil {
+			return err
+		}
 	}
 
 	return nil

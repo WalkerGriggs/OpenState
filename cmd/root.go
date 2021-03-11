@@ -11,7 +11,7 @@ func NewCmdOpenState() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdServer())
-	cmd.AddCommand(NewCmdNames())
+	cmd.AddCommand(NewCmdTask())
 
 	return cmd
 }
