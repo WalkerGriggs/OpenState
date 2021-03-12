@@ -74,11 +74,13 @@ func (o *TaskDefineOptions) Run() {
 		return
 	}
 
-	_, err = client.Tasks().Define(task)
+	res, err := client.Tasks().Define(task)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Printf("%+v\n", *res)
 }
 
 func NewCmdTaskDefine() *cobra.Command {

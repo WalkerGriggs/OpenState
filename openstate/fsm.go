@@ -6,8 +6,6 @@ import (
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
-
-	"github.com/walkergriggs/openstate/fsm"
 )
 
 // openstateFSM implements raft.FSM and is used for strongly consistent state
@@ -16,7 +14,7 @@ type openstateFSM struct {
 	logger log.Logger
 
 	// tasks are the state to replicate across the cluster
-	tasks []*fsm.FSM
+	tasks []*Task
 }
 
 // openstateFSMConfig is used to configure the openstateFSM
@@ -27,13 +25,13 @@ type openstateFSMConfig struct {
 // openstateSnapshot implements raft.FSMSnapshot and is used to persist a
 // point-in-time replica of the FSM's state to disk.
 type openstateSnapshot struct {
-	state []*fsm.FSM
+	state []*Task
 }
 
 // NewFSM returns a FSM given a config.
 func NewFSM(config *openstateFSMConfig) (*openstateFSM, error) {
 	return &openstateFSM{
-		tasks:  make([]*fsm.FSM, 0),
+		tasks:  make([]*Task, 0),
 		logger: config.Logger,
 	}, nil
 }
@@ -64,7 +62,13 @@ func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index ui
 		return err
 	}
 
-	f.tasks = append(f.tasks, fsm)
+	task := &Task{
+		Name: req.Task.Name,
+		Tags: req.Task.Tags,
+		FSM:  fsm,
+	}
+
+	f.tasks = append(f.tasks, task)
 
 	return nil
 }
@@ -72,7 +76,7 @@ func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index ui
 // Snapshot supports log compaction. This call should return an FSMSnapshot
 // which can be used to save a point-in-time snapshot of the FSM.
 func (f *openstateFSM) Snapshot() (raft.FSMSnapshot, error) {
-	state := make([]*fsm.FSM, len(f.tasks))
+	state := make([]*Task, len(f.tasks))
 	copy(state, f.tasks)
 
 	return &openstateSnapshot{state}, nil
@@ -81,7 +85,7 @@ func (f *openstateFSM) Snapshot() (raft.FSMSnapshot, error) {
 // Restore is used to restore an FSM from a snapshot. It is not called
 // concurrently with any other command. The FSM must discard all previous state.
 func (f *openstateFSM) Restore(rc io.ReadCloser) error {
-	state := make([]*fsm.FSM, 0)
+	state := make([]*Task, 0)
 	if err := json.NewDecoder(rc).Decode(&state); err != nil {
 		return err
 	}

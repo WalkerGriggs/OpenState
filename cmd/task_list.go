@@ -39,7 +39,7 @@ func (o *TaskListOptions) Run() {
 		return
 	}
 
-	fmt.Println(res)
+	fmt.Printf("%+v\n", *res)
 }
 
 func NewCmdTaskList() *cobra.Command {

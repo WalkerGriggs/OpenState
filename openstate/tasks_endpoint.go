@@ -29,8 +29,14 @@ func (s *HTTPServer) tasksList(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 
+	names := make([]string, len(s.server.fsm.tasks))
+	for i, task := range s.server.fsm.tasks {
+		names[i] = task.Name
+	}
+
 	res := &api.TaskListResponse{
-		Len: len(s.server.fsm.tasks),
+		Len:   len(s.server.fsm.tasks),
+		Names: names,
 	}
 
 	return res, nil
@@ -66,5 +72,11 @@ func (s *HTTPServer) tasksUpdate(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	return index, nil
+	res := &api.TaskDefineResponse{
+		Index: index,
+		Name:  out.Task.Name,
+		Tags:  out.Task.Tags,
+	}
+
+	return res, nil
 }

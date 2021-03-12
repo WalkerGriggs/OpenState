@@ -11,6 +11,12 @@ type Tasks struct {
 
 // Task is used to serialize tasks
 type Task struct {
+	// Name is a globally unique name for the task.
+	Name string `yaml:"name"`
+
+	// Tags is a list of task-relevent attributes.
+	Tags []string `yaml:"tags"`
+
 	FSM *FSM `yaml:"state_machine"`
 }
 
@@ -36,36 +42,24 @@ type Event struct {
 	Src []string `yaml:"sources"`
 }
 
-// FSMDefineRequest is used to define a new task
-type TaskDefineRequest struct {
-	Task *Task
-}
-
-// FSMDefineResponse is used to response to an task definition request.
-type TaskDefineResponse struct {
-}
-
-type TaskListRequest struct {
-}
-
-type TaskListResponse struct {
-	Len int
-}
-
 // FSMs wraps the client for task-specific endpoints
 func (c *Client) Tasks() *Tasks {
 	return &Tasks{client: c}
 }
 
-//List is used to list all defined tasks.
-func (t *Tasks) List() (*TaskListResponse, error) {
-	var res TaskListResponse
-	if err := t.client.query("/v1/tasks", &res, nil); err != nil {
-		return nil, err
+type (
+	// TaskDefineRequest is used to serialize a Define request
+	TaskDefineRequest struct {
+		Task *Task
 	}
 
-	return &res, nil
-}
+	// TaskDefineResponse is used to serialize a Define response
+	TaskDefineResponse struct {
+		Index uint64
+		Name  string
+		Tags  []string
+	}
+)
 
 // Define is used to create a new task.
 func (t *Tasks) Define(task *Task) (*TaskDefineResponse, error) {
@@ -73,11 +67,33 @@ func (t *Tasks) Define(task *Task) (*TaskDefineResponse, error) {
 		Task: task,
 	}
 
-	if err := t.client.write("/v1/tasks", req, nil, nil); err != nil {
+	var res TaskDefineResponse
+	if err := t.client.write("/v1/tasks", req, &res, nil); err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	return &res, nil
+}
+
+type (
+	// TaskListRequest is used to serialize a List request
+	TaskListRequest struct{}
+
+	// TaskListResponse is used to serialize a List response
+	TaskListResponse struct {
+		Len   int
+		Names []string
+	}
+)
+
+// List is used to list all defined tasks.
+func (t *Tasks) List() (*TaskListResponse, error) {
+	var res TaskListResponse
+	if err := t.client.query("/v1/tasks", &res, nil); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
 
 // Ftof converts an api.FSM to an fsm.FSM
