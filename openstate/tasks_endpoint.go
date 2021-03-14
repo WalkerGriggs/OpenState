@@ -24,7 +24,7 @@ func (s *HTTPServer) tasksRequest(resp http.ResponseWriter, req *http.Request) (
 // TODO return a list of metadata, not just the total count of tasks.
 // TODO allow stale reads from the follower, so the request isn't forwarded to
 //      the leader.
-func (s *HTTPServer) tasksList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) tasksList(resp http.ResponseWriter, req *http.Request) (*api.TaskListResponse, error) {
 	if ok, err := s.forward(resp, req); ok {
 		return nil, err
 	}
