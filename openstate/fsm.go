@@ -2,6 +2,7 @@ package openstate
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	log "github.com/hashicorp/go-hclog"
@@ -63,13 +64,16 @@ func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index ui
 	}
 
 	task := &Task{
-		Name: req.Task.Name,
-		Tags: req.Task.Tags,
-		FSM:  fsm,
+		Name:       req.Task.Metadata.Name,
+		Attributes: req.Task.Metadata.Attributes,
+		FSM:        fsm,
+	}
+
+	if err := task.Validate(); err != nil {
+		return err
 	}
 
 	f.tasks = append(f.tasks, task)
-
 	return nil
 }
 

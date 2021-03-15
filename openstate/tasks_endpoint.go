@@ -73,9 +73,9 @@ func (s *HTTPServer) tasksUpdate(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	res := &api.TaskDefineResponse{
-		Index: index,
-		Name:  out.Task.Name,
-		Tags:  out.Task.Tags,
+		Index:      index,
+		Name:       out.Task.Metadata.Name,
+		Attributes: out.Task.Metadata.Attributes,
 	}
 
 	return res, nil

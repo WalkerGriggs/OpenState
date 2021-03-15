@@ -11,13 +11,19 @@ type Tasks struct {
 
 // Task is used to serialize tasks
 type Task struct {
+	// Metadata groups task-related descriptors
+	Metadata *Metadata `yaml:"metadata"`
+
+	FSM *FSM `yaml:"state_machine"`
+}
+
+// Metadata groups task-related descriptors
+type Metadata struct {
 	// Name is a globally unique name for the task.
 	Name string `yaml:"name"`
 
-	// Tags is a list of task-relevent attributes.
-	Tags []string `yaml:"tags"`
-
-	FSM *FSM `yaml:"state_machine"`
+	// Attributes is a map of task-relevant key-values pairs
+	Attributes map[string]string `yaml:"attributes"`
 }
 
 // FSM is used to serialize state machines
@@ -55,9 +61,9 @@ type (
 
 	// TaskDefineResponse is used to serialize a Define response
 	TaskDefineResponse struct {
-		Index uint64
-		Name  string
-		Tags  []string
+		Index      uint64
+		Name       string
+		Attributes map[string]string
 	}
 )
 

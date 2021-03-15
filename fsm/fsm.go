@@ -129,3 +129,25 @@ func (fsm *FSM) transition(dst string) {
 	defer fsm.stateMu.Unlock()
 	fsm.current = dst
 }
+
+// Edges returns a list of all unique edges between source and destination
+// states.
+func (m *FSM) Edges() map[string][]string {
+	edges := make(map[string][]string)
+
+	for eparts, dst := range m.transitions {
+		if _, ok := edges[eparts.src]; !ok {
+			edges[eparts.src] = []string{}
+		}
+
+		edges[eparts.src] = append(edges[eparts.src], dst)
+	}
+
+	return edges
+}
+
+// Validate is used to check the validity of the FSM. Validate is not considered
+// comprehensive at this time.
+func (m *FSM) Validate() error {
+	return nil
+}
