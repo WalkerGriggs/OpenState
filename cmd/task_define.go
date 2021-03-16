@@ -60,13 +60,13 @@ func (o *TaskDefineOptions) Run() {
 		return
 	}
 
-	task := &api.Task{
+	def := &api.Definition{
 		FSM: &api.FSM{
 			Events: make([]*api.Event, 0),
 		},
 	}
 
-	yaml.Unmarshal(b, task)
+	yaml.Unmarshal(b, def)
 
 	client, err := api.NewClient()
 	if err != nil {
@@ -74,7 +74,7 @@ func (o *TaskDefineOptions) Run() {
 		return
 	}
 
-	res, err := client.Tasks().Define(task)
+	res, err := client.Tasks().Define(def)
 	if err != nil {
 		fmt.Println(err)
 		return

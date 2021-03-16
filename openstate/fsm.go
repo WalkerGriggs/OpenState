@@ -2,7 +2,6 @@ package openstate
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 
 	log "github.com/hashicorp/go-hclog"
@@ -12,10 +11,9 @@ import (
 // openstateFSM implements raft.FSM and is used for strongly consistent state
 // replication across the cluster.
 type openstateFSM struct {
-	logger log.Logger
-
-	// tasks are the state to replicate across the cluster
-	tasks []*Task
+	logger      log.Logger
+	definitions map[string]*Definition
+	instances   map[string]*Instance
 }
 
 // openstateFSMConfig is used to configure the openstateFSM
@@ -26,19 +24,20 @@ type openstateFSMConfig struct {
 // openstateSnapshot implements raft.FSMSnapshot and is used to persist a
 // point-in-time replica of the FSM's state to disk.
 type openstateSnapshot struct {
-	state []*Task
+	definitions map[string]*Definition
 }
 
 // NewFSM returns a FSM given a config.
 func NewFSM(config *openstateFSMConfig) (*openstateFSM, error) {
 	return &openstateFSM{
-		tasks:  make([]*Task, 0),
-		logger: config.Logger,
+		definitions: make(map[string]*Definition),
+		instances:   make(map[string]*Instance),
+		logger:      config.Logger,
 	}, nil
 }
 
 // Apply is invoked once a log entry is committed and persists the log to the
-// FSm
+// FSM
 func (f *openstateFSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
 	msgType := MessageType(buf[0])
@@ -46,11 +45,15 @@ func (f *openstateFSM) Apply(log *raft.Log) interface{} {
 	switch msgType {
 	case TaskDefineRequestType:
 		return f.applyDefineTask(msgType, buf[1:], log.Index)
+	case TaskRunRequestType:
+		return f.applyRunTask(msgType, buf[1:], log.Index)
 	}
 
 	panic("Failed to apply log!")
 }
 
+// applyDefineTask parses the task definition from the request and applies it to
+// the Raft cluster
 func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index uint64) interface{} {
 	var req TaskDefineRequest
 	if err := json.Unmarshal(buf, &req); err != nil {
@@ -58,50 +61,63 @@ func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index ui
 		return err
 	}
 
-	fsm, err := req.Task.FSM.Ftof()
-	if err != nil {
+	def := &Definition{
+		Name:       req.Definition.Metadata.Name,
+		Attributes: req.Definition.Metadata.Attributes,
+		FSM:        req.Definition.FSM,
+	}
+
+	if err := def.Validate(); err != nil {
 		return err
 	}
 
-	task := &Task{
-		Name:       req.Task.Metadata.Name,
-		Attributes: req.Task.Metadata.Attributes,
-		FSM:        fsm,
-	}
+	f.definitions[def.Name] = def
+	return nil
+}
 
-	if err := task.Validate(); err != nil {
+// applyRunTask parses the task instance from the request and applies it to the
+// Raft cluster
+func (f *openstateFSM) applyRunTask(reqType MessageType, buf []byte, index uint64) interface{} {
+	var req TaskRunRequest
+	if err := json.Unmarshal(buf, &req); err != nil {
+		f.logger.Error("decode raft log err %v", err)
 		return err
 	}
 
-	f.tasks = append(f.tasks, task)
+	f.instances[req.Instance.ID] = req.Instance
 	return nil
 }
 
 // Snapshot supports log compaction. This call should return an FSMSnapshot
 // which can be used to save a point-in-time snapshot of the FSM.
+// TODO: Snapshot running instances
 func (f *openstateFSM) Snapshot() (raft.FSMSnapshot, error) {
-	state := make([]*Task, len(f.tasks))
-	copy(state, f.tasks)
+	defs := make(map[string]*Definition)
+	for k, v := range f.definitions {
+		defs[k] = v
+	}
 
-	return &openstateSnapshot{state}, nil
+	return &openstateSnapshot{defs}, nil
 }
 
 // Restore is used to restore an FSM from a snapshot. It is not called
 // concurrently with any other command. The FSM must discard all previous state.
+// TODO restore running instances
 func (f *openstateFSM) Restore(rc io.ReadCloser) error {
-	state := make([]*Task, 0)
-	if err := json.NewDecoder(rc).Decode(&state); err != nil {
+	defs := make(map[string]*Definition)
+	if err := json.NewDecoder(rc).Decode(&defs); err != nil {
 		return err
 	}
 
-	f.tasks = state
+	f.definitions = defs
 	return nil
 }
 
 // Persist dumps all necessary state to the WriteCloser 'sink'.
+// TODO persist running instances
 func (s *openstateSnapshot) Persist(sink raft.SnapshotSink) error {
 	err := func() error {
-		b, err := json.Marshal(s.state)
+		b, err := json.Marshal(s.definitions)
 		if err != nil {
 			return err
 		}

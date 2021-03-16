@@ -12,6 +12,9 @@ func NewCmdTask() *cobra.Command {
 
 	cmd.AddCommand(NewCmdTaskDefine())
 	cmd.AddCommand(NewCmdTaskList())
+	cmd.AddCommand(NewCmdTaskRun())
+	cmd.AddCommand(NewCmdTaskPs())
+	// cmd.AddCommand(NewCmdTaskInspect())
 
 	return cmd
 }

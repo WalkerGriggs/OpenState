@@ -14,6 +14,13 @@ func TaskListUsageTemplate() string {
 Usage: openstate task list [options]
 
 	List all currently defined tasks.
+
+General Options:
+
+	--address=<address>
+		The host:port pair of an OpenState server HTTP endpoint. This
+		endpoint can be any server in the cluster; the request will be
+		forwarded to the leader.
 `
 
 	return strings.TrimSpace(helpText)

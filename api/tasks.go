@@ -1,7 +1,8 @@
 package api
 
 import (
-	"github.com/walkergriggs/openstate/fsm"
+	"fmt"
+	"net/url"
 )
 
 // Tasks wraps the client and is used for task-specific endpoints
@@ -9,8 +10,8 @@ type Tasks struct {
 	client *Client
 }
 
-// Task is used to serialize tasks
-type Task struct {
+// Definition is used to serialize task definitions
+type Definition struct {
 	// Metadata groups task-related descriptors
 	Metadata *Metadata `yaml:"metadata"`
 
@@ -56,7 +57,7 @@ func (c *Client) Tasks() *Tasks {
 type (
 	// TaskDefineRequest is used to serialize a Define request
 	TaskDefineRequest struct {
-		Task *Task
+		Definition *Definition
 	}
 
 	// TaskDefineResponse is used to serialize a Define response
@@ -68,9 +69,9 @@ type (
 )
 
 // Define is used to create a new task.
-func (t *Tasks) Define(task *Task) (*TaskDefineResponse, error) {
+func (t *Tasks) Define(def *Definition) (*TaskDefineResponse, error) {
 	req := &TaskDefineRequest{
-		Task: task,
+		Definition: def,
 	}
 
 	var res TaskDefineResponse
@@ -102,19 +103,47 @@ func (t *Tasks) List() (*TaskListResponse, error) {
 	return &res, nil
 }
 
-// Ftof converts an api.FSM to an fsm.FSM
-func (m *FSM) Ftof() (*fsm.FSM, error) {
-	events := make([]*fsm.Event, len(m.Events))
+type (
+	// TaskRunRequest is used to serialize a Run request
+	TaskRunRequest struct{}
 
-	for i, event := range m.Events {
-		e := &fsm.Event{
-			Name: event.Name,
-			Dst:  event.Dst,
-			Src:  event.Src,
-		}
+	// TaskRunResponse is used to serialize a Run resonse
+	TaskRunResponse struct {
+		InstanceID string
+	}
+)
 
-		events[i] = e
+// Run is used to initialize a running task instance from a definition
+func (t *Tasks) Run(taskName string) (*TaskRunResponse, error) {
+	req := &TaskRunRequest{}
+
+	var res TaskRunResponse
+	err := t.client.write(fmt.Sprintf("/v1/task/%s/run", url.PathEscape(taskName)), req, &res, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	return fsm.NewFSM(&fsm.FSMConfig{}, m.Initial, events)
+	return &res, nil
+}
+
+type (
+	// TaskPsRequest is used to serialize a Ps request
+	TaskPsRequest struct{}
+
+	// TaskPsResponse is used to serialize a Ps response
+	TaskPsResponse struct {
+		Len int
+		IDs []string
+	}
+)
+
+// Ps is used to list running task instances for a given task definition
+func (t *Tasks) Ps(taskName string) (*TaskPsResponse, error) {
+	var res TaskPsResponse
+	err := t.client.query(fmt.Sprintf("/v1/task/%s/ps", url.PathEscape(taskName)), &res, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
