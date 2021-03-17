@@ -14,12 +14,17 @@ const (
 	TaskRunRequestType    MessageType = 1
 )
 
+// TaskDefineRequest is used to serialize a task definition request to be sent
+// over Raft logs
 type TaskDefineRequest struct {
 	Definition *api.Definition
 }
 
+// TaskRunRequest is used to serialize a task run request to be sent over Raft
+// logs
 type TaskRunRequest struct {
-	Instance *Instance
+	InstanceID string
+	Definition *Definition
 }
 
 // Definition is used to define task workflows.

@@ -6,6 +6,8 @@ import (
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
+
+	"github.com/walkergriggs/openstate/api"
 )
 
 // openstateFSM implements raft.FSM and is used for strongly consistent state
@@ -84,7 +86,18 @@ func (f *openstateFSM) applyRunTask(reqType MessageType, buf []byte, index uint6
 		return err
 	}
 
-	f.instances[req.Instance.ID] = req.Instance
+	fsm, err := api.Ftof(req.Definition.FSM)
+	if err != nil {
+		return err
+	}
+
+	instance := &Instance{
+		ID:         req.InstanceID,
+		Definition: req.Definition,
+		FSM:        fsm,
+	}
+
+	f.instances[instance.ID] = instance
 	return nil
 }
 

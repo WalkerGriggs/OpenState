@@ -114,19 +114,9 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 		return nil, fmt.Errorf("No task definition with name %s", defName)
 	}
 
-	fsm, err := api.Ftof(def.FSM)
-	if err != nil {
-		return nil, err
-	}
-
-	instance := &Instance{
-		ID:         fmt.Sprintf("%s-%s", defName, generateUUID()),
-		Definition: def,
-		FSM:        fsm,
-	}
-
 	args := &TaskRunRequest{
-		Instance: instance,
+		InstanceID: fmt.Sprintf("%s-%s", def.Name, generateUUID()),
+		Definition: def,
 	}
 
 	fsmErr, _, err := s.server.raftApply(TaskRunRequestType, args)
@@ -141,7 +131,7 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 	}
 
 	res := &api.TaskRunResponse{
-		InstanceID: instance.ID,
+		InstanceID: args.InstanceID,
 	}
 
 	return res, nil

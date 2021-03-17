@@ -22,7 +22,7 @@ type FSM struct {
 
 	// stateMu is a read-write mutex lock to gaurd against state-related race
 	// conditions.
-	stateMu *sync.RWMutex
+	stateMu sync.RWMutex
 
 	// transitions is a map of all unique transitions, where the keys are built
 	// from unique event name/src pairs.
@@ -60,7 +60,6 @@ func NewFSM(config *FSMConfig, initial string, events Events) (*FSM, error) {
 		current:     initial,
 		config:      config,
 		transitions: make(map[eParts]string),
-		stateMu:     &sync.RWMutex{},
 	}
 
 	for _, event := range events {
@@ -101,7 +100,7 @@ func (fsm *FSM) Do(event string) error {
 
 	dst, ok := fsm.transitions[eParts{event, fsm.current}]
 	if !ok {
-		return fmt.Errorf("FSM cannot %s\n", event)
+		return fmt.Errorf("FSM cannot %s", event)
 	}
 
 	fsm.stateMu.RUnlock()
