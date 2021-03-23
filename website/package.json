@@ -28,13 +28,13 @@
                 "deploy": "docusaurus deploy"
         },
         "dependencies": {
-                "@docusaurus/core": "^2.0.0-alpha.50",
-                "@docusaurus/preset-classic": "^2.0.0-alpha.50",
-                "docusaurus-plugin-sass": "^0.1.8",
-                "@eightshift/frontend-libs": "^3.2.2",
-                "react": "^16.8.4",
-                "react-dom": "^16.8.4",
-                "react-scripts": "^3.4.1"
+                "@docusaurus/core": "^2.0.0-alpha.72",
+                "@docusaurus/preset-classic": "^2.0.0-alpha.72",
+                "docusaurus-plugin-sass": "^0.1.12",
+                "media-blender": "^2.1.0",
+                "normalize-scss": "^7.0.1",
+                "react": "^16.14.0",
+                "react-dom": "^16.14.0"
         },
         "browserslist": {
                 "production": [

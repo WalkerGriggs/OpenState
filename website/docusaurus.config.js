@@ -14,13 +14,16 @@ module.exports = {
     }
   ],
   themeConfig: {
-    disableDarkMode: true,
+    colorMode: {
+      defaultMode: 'light',
+      disableSwitch: true,
+    },
     navbar: {
       logo: {
         alt: 'OpenState Logo',
         src: 'img/eightshift-dev-kit-logo.svg',
       },
-      links: [
+      items: [
         {
           to: '/',
           activeBasePath: '/',
@@ -76,7 +79,6 @@ module.exports = {
     [
       '@docusaurus/plugin-sitemap',
       {
-        cacheTime: 600 * 1000, // 600 sec - cache purge period
         changefreq: 'weekly',
         priority: 0.5,
         trailingSlash: false,
