@@ -19,13 +19,8 @@ Usage: openstate task define <path> [options]
 	Define a new or update an existing Task using the definition file
 	at <path>. For the time being, this path must be absolute.
 
-General Options:
+` + SharedTaskUsageTemplate()
 
-	--address=<address>
-		The host:port pair of an OpenState server HTTP endpoint. This
-		endpoint can be any server in the cluster; the request will be
-		forwarded to the leader.
-`
 	return strings.TrimSpace(helpText)
 }
 

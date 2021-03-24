@@ -17,13 +17,8 @@ Usage: openstate task run <task> [options]
 	a copy of the task's underlying state machine and executable callbacks.
 	To view a list of running task instances, use 'tasks ps'.
 
-General Options:
+` + SharedTaskUsageTemplate()
 
-	--address=<address>
-		The host:port pair of an OpenState server HTTP endpoint. This
-		endpoint can be any server in the cluster; the request will be
-		forwarded to the leader.
-`
 	return strings.TrimSpace(helpText)
 }
 
