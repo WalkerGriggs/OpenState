@@ -16,9 +16,7 @@ type Client struct {
 
 // NewClient returns a new client with the default httpClient.
 // TODO allow the method to take in an optional config instead of the default
-func NewClient() (*Client, error) {
-	config := DefaultConfig()
-
+func NewClient(config *Config) (*Client, error) {
 	httpClient := &http.Client{}
 
 	client := &Client{

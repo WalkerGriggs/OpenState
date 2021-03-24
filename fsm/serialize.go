@@ -8,7 +8,7 @@ import (
 // encoding packages. necessary to marshal FSM to json.
 func (m *FSM) MarshalText() ([]byte, error) {
 	b, err := json.Marshal(
-		struct{
+		struct {
 			Current     string            `json:"current"`
 			Transitions map[eParts]string `json:"transitions"`
 		}{
@@ -16,7 +16,7 @@ func (m *FSM) MarshalText() ([]byte, error) {
 			Transitions: m.transitions,
 		},
 	)
-	
+
 	return b, err
 }
 
@@ -35,7 +35,7 @@ func (m *FSM) UnmarshalText(b []byte) error {
 
 	m.current = fsm.Current
 	m.transitions = fsm.Transitions
-	
+
 	return nil
 }
 

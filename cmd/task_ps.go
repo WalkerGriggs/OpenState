@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"github.com/walkergriggs/openstate/api"
 )
 
 func TaskPsUsageTemplate() string {
@@ -15,18 +13,13 @@ Usage: openstate task ps <task> [options]
 
 	List all running instances of the defined task.
 
-General Options:
-
-	--address=<address>
-		The host:port pair of an OpenState server HTTP endpoint. This
-		endpoint can be any server in the cluster; the request will be
-		forwarded to the leader.
-`
+` + SharedUsageTemplate()
 
 	return strings.TrimSpace(helpText)
 }
 
 type TaskPsOptions struct {
+	Meta
 	TaskName string
 }
 
@@ -44,7 +37,7 @@ func (o *TaskPsOptions) Complete(cmd *cobra.Command, args []string) error {
 }
 
 func (o *TaskPsOptions) Run() {
-	client, err := api.NewClient()
+	client, err := o.Meta.Client()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -57,6 +50,10 @@ func (o *TaskPsOptions) Run() {
 	}
 
 	fmt.Printf("%+v\n", *res)
+}
+
+func (o *TaskPsOptions) Name() string {
+	return "task list"
 }
 
 func NewCmdTaskPs() *cobra.Command {
@@ -73,6 +70,9 @@ func NewCmdTaskPs() *cobra.Command {
 		},
 	}
 
+	sharedFlags := o.Meta.FlagSet(o.Name())
+
+	cmd.Flags().AddFlagSet(sharedFlags)
 	cmd.SetUsageTemplate(TaskPsUsageTemplate())
 
 	return cmd
