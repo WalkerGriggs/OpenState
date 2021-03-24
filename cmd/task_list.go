@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"github.com/walkergriggs/openstate/api"
 )
 
 func TaskListUsageTemplate() string {
@@ -15,12 +13,13 @@ Usage: openstate task list [options]
 
 	List all currently defined tasks.
 
-` + SharedTaskUsageTemplate()
+` + SharedUsageTemplate()
 
 	return strings.TrimSpace(helpText)
 }
 
 type TaskListOptions struct {
+	Meta
 }
 
 func NewTaskListOptions() *TaskListOptions {
@@ -28,7 +27,7 @@ func NewTaskListOptions() *TaskListOptions {
 }
 
 func (o *TaskListOptions) Run() {
-	client, err := api.NewClient()
+	client, err := o.Meta.Client()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -43,6 +42,10 @@ func (o *TaskListOptions) Run() {
 	fmt.Printf("%+v\n", *res)
 }
 
+func (o *TaskListOptions) Name() string {
+	return "task list"
+}
+
 func NewCmdTaskList() *cobra.Command {
 	o := NewTaskListOptions()
 
@@ -53,6 +56,9 @@ func NewCmdTaskList() *cobra.Command {
 		},
 	}
 
+	sharedFlags := o.Meta.FlagSet(o.Name())
+
+	cmd.Flags().AddFlagSet(sharedFlags)
 	cmd.SetUsageTemplate(TaskListUsageTemplate())
 
 	return cmd

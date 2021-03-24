@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"github.com/walkergriggs/openstate/api"
 )
 
 func InstanceEventUsageTemplate() string {
@@ -17,12 +15,13 @@ Usage: openstate instance event <instance> <event> [options]
 	the current state of the instance after the even is performed. If the
 	instance cannot perform the event, it will return an error.
 
-` + SharedInstanceUsageTemplate()
+` + SharedUsageTemplate()
 
 	return strings.TrimSpace(helpText)
 }
 
 type InstanceEventOptions struct {
+	Meta
 	instanceName string
 	eventName    string
 }
@@ -42,7 +41,7 @@ func (o *InstanceEventOptions) Complete(cmd *cobra.Command, args []string) error
 }
 
 func (o *InstanceEventOptions) Run() {
-	client, err := api.NewClient()
+	client, err := o.Meta.Client()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -55,6 +54,10 @@ func (o *InstanceEventOptions) Run() {
 	}
 
 	fmt.Printf("%+v\n", *res)
+}
+
+func (o *InstanceEventOptions) Name() string {
+	return "instance event"
 }
 
 func NewCmdInstanceEvent() *cobra.Command {
@@ -71,6 +74,9 @@ func NewCmdInstanceEvent() *cobra.Command {
 		},
 	}
 
+	sharedFlags := o.Meta.FlagSet(o.Name())
+
+	cmd.Flags().AddFlagSet(sharedFlags)
 	cmd.SetUsageTemplate(InstanceEventUsageTemplate())
 
 	return cmd

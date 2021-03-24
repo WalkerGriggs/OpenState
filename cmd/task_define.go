@@ -19,12 +19,13 @@ Usage: openstate task define <path> [options]
 	Define a new or update an existing Task using the definition file
 	at <path>. For the time being, this path must be absolute.
 
-` + SharedTaskUsageTemplate()
+` + SharedUsageTemplate()
 
 	return strings.TrimSpace(helpText)
 }
 
 type TaskDefineOptions struct {
+	Meta
 	path string
 }
 
@@ -63,7 +64,7 @@ func (o *TaskDefineOptions) Run() {
 
 	yaml.Unmarshal(b, def)
 
-	client, err := api.NewClient()
+	client, err := o.Meta.Client()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -76,6 +77,10 @@ func (o *TaskDefineOptions) Run() {
 	}
 
 	fmt.Printf("%+v\n", *res)
+}
+
+func (o *TaskDefineOptions) Name() string {
+	return "task define"
 }
 
 func NewCmdTaskDefine() *cobra.Command {
@@ -92,6 +97,9 @@ func NewCmdTaskDefine() *cobra.Command {
 		},
 	}
 
+	sharedFlags := o.Meta.FlagSet(o.Name())
+
+	cmd.Flags().AddFlagSet(sharedFlags)
 	cmd.SetUsageTemplate(TaskDefineUsageTemplate())
 
 	return cmd
