@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"os"
+	"path"
 	"strings"
 
 	log "github.com/hashicorp/go-hclog"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
 	"github.com/walkergriggs/openstate/openstate"
@@ -86,6 +88,19 @@ func NewServerOptions() *ServerOptions {
 	}
 }
 
+func (o *ServerOptions) Complete(cmd *cobra.Command, args []string) error {
+	if o.configPath == "" {
+		home, err := homedir.Dir()
+		if err != nil {
+			return err
+		}
+
+		o.configPath = path.Join(home, CONFIG_DIR, CONFIG_FILENAME)
+	}
+
+	return nil
+}
+
 // Run reads in the config file, overwrites any values with flags, and starts
 // the server.
 func (o *ServerOptions) Run() {
@@ -134,6 +149,10 @@ func NewCmdServer() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "server",
 		Run: func(cmd *cobra.Command, args []string) {
+			if err := o.Complete(cmd, args); err != nil {
+				return
+			}
+
 			o.Run()
 		},
 	}
