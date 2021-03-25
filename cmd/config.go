@@ -1,13 +1,20 @@
 package cmd
 
 import (
+	"fmt"
 	"net"
-	"os"
+	"path"
+	"strings"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 
 	"github.com/walkergriggs/openstate/openstate"
+)
+
+const (
+	CONFIG_DIR = ".openstate"
+
+	CONFIG_FILENAME = "config"
 )
 
 type (
@@ -188,37 +195,46 @@ func (conf *Config) ctoc() (*openstate.Config, error) {
 
 // unmarshalConfig reads in the config file from either the default directory
 // or the given path and returns the extracted values in a Config struct.
-func unmarshalConfig(path string) (*Config, error) {
-	home, err := homedir.Dir()
-	if err != nil {
+func unmarshalConfig(p string) (*Config, error) {
+	viper.BindEnv("dev_mode")
+	viper.BindEnv("log_level")
+	viper.BindEnv("data_directory")
+	viper.BindEnv("advertise.http")
+	viper.BindEnv("advertise.raft")
+	viper.BindEnv("advertise.serf")
+	viper.BindEnv("server.node_name")
+	viper.BindEnv("server.join")
+	viper.BindEnv("server.bootstrap_expect")
+	viper.AutomaticEnv()
+
+	configPath, configFile := path.Split(p)
+	configName := strings.TrimSuffix(configFile, path.Ext(p))
+
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvPrefix("OS")
+
+	viper.AddConfigPath(configPath)
+	viper.SetConfigName(configName)
+
+	if err := viper.ReadInConfig(); err != nil {
+		switch err.(type) {
+		case viper.ConfigFileNotFoundError:
+			fmt.Println("No config file found. Falling back to environment variables.")
+		default:
+			return nil, err
+		}
+	}
+
+	config := &Config{
+		Addrs:  &AdvertiseAddrs{},
+		Server: &ServerConfig{},
+	}
+
+	if err := viper.Unmarshal(config); err != nil {
 		return nil, err
 	}
 
-	if path == "" {
-		viper.AddConfigPath(home + "/.openstate/")
-		viper.SetConfigName("config")
-
-		if err := viper.ReadInConfig(); err != nil {
-			return nil, err
-		}
-	} else {
-		// TODO don't hardcode the config type
-		viper.SetConfigType("yaml")
-		file, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := viper.ReadConfig(file); err != nil {
-			return nil, err
-		}
-	}
-
-	config := &Config{}
-	err = viper.Unmarshal(config)
-	if err != nil {
-		return nil, err
-	}
+	fmt.Printf("%+v\n", config)
 
 	return config, nil
 }

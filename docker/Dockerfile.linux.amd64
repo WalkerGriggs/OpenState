@@ -1,0 +1,8 @@
+FROM ubuntu:groovy
+
+RUN apt-get update && \
+    apt-get upgrade -y
+
+ADD pkg/linux_amd64/openstate /bin/
+
+ENTRYPOINT ["openstate", "server"]
