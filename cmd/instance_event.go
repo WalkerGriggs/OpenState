@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -27,7 +28,11 @@ type InstanceEventOptions struct {
 }
 
 func NewInstanceEventOptions() *InstanceEventOptions {
-	return &InstanceEventOptions{}
+	ui := &SimpleUI{os.Stdout}
+
+	return &InstanceEventOptions{
+		Meta: Meta{UI: ui},
+	}
 }
 
 func (o *InstanceEventOptions) Complete(cmd *cobra.Command, args []string) error {

@@ -30,7 +30,11 @@ type TaskDefineOptions struct {
 }
 
 func NewTaskDefineOptions() *TaskDefineOptions {
-	return &TaskDefineOptions{}
+	ui := &SimpleUI{os.Stdout}
+
+	return &TaskDefineOptions{
+		Meta: Meta{UI: ui},
+	}
 }
 
 func (o *TaskDefineOptions) Complete(cmd *cobra.Command, args []string) error {

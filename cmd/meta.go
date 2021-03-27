@@ -9,6 +9,7 @@ import (
 )
 
 type Meta struct {
+	UI      UI
 	Address string
 }
 

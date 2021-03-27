@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -23,7 +24,11 @@ type TaskListOptions struct {
 }
 
 func NewTaskListOptions() *TaskListOptions {
-	return &TaskListOptions{}
+	ui := &SimpleUI{os.Stdout}
+
+	return &TaskListOptions{
+		Meta: Meta{UI: ui},
+	}
 }
 
 func (o *TaskListOptions) Run() {

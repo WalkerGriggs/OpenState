@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -26,7 +27,11 @@ type TaskRunOptions struct {
 }
 
 func NewTaskRunOptions() *TaskRunOptions {
-	return &TaskRunOptions{}
+	ui := &SimpleUI{os.Stdout}
+
+	return &TaskRunOptions{
+		Meta: Meta{UI: ui},
+	}
 }
 
 func (o *TaskRunOptions) Complete(cmd *cobra.Command, args []string) error {
