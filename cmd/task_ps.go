@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -24,7 +25,11 @@ type TaskPsOptions struct {
 }
 
 func NewTaskPsOptions() *TaskPsOptions {
-	return &TaskPsOptions{}
+	ui := &SimpleUI{os.Stdout}
+
+	return &TaskPsOptions{
+		Meta: Meta{UI: ui},
+	}
 }
 
 func (o *TaskPsOptions) Complete(cmd *cobra.Command, args []string) error {
