@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/walkergriggs/openstate/openstate/structs"
 )
 
 type schemaFactory func() *memdb.TableSchema
@@ -73,12 +75,90 @@ func instanceTableSchema() *memdb.TableSchema {
 			"id": &memdb.IndexSchema{
 				Name:    "id",
 				Unique:  true,
-				Indexer: &memdb.StringFieldIndex{Field: "Name"},
+				Indexer: &memdb.StringFieldIndex{Field: "ID"},
 			},
 		},
 	}
 }
 
-func InsertDefinition() error {
+func (s *StateStore) InsertDefinition(def *structs.Definition) error {
+	txn := s.DB.Txn(true)
+	defer txn.Abort()
 
+	existing, err := txn.First("definition", "id", def.Name)
+	if err != nil {
+		return err
+	}
+
+	if existing != nil {
+		return fmt.Errorf("Definition with name %s already exists.", def.Name)
+	}
+
+	fmt.Println(def)
+
+	if err := txn.Insert("definition", def); err != nil {
+		return err
+	}
+
+	txn.Commit()
+
+	return nil
+}
+
+func (s *StateStore) GetDefinitions() ([]*structs.Definition, error) {
+	txn := s.DB.Txn(false)
+	defer txn.Abort()
+
+	it, err := txn.Get("definition", "id")
+	if err != nil {
+		return nil, err
+	}
+
+	defs := make([]*structs.Definition, 0)
+
+	for obj := it.Next(); obj != nil; obj = it.Next() {
+		defs = append(defs, obj.(*structs.Definition))
+	}
+
+	return defs, nil
+}
+
+func (s *StateStore) InsertInstance(instance *structs.Instance) error {
+	txn := s.DB.Txn(true)
+	defer txn.Abort()
+
+	existing, err := txn.First("instance", "id", instance.ID)
+	if err != nil {
+		return err
+	}
+
+	if existing != nil {
+		return fmt.Errorf("Instance with ID %s already exists.", instance.ID)
+	}
+
+	if err := txn.Insert("instance", instance); err != nil {
+		return err
+	}
+
+	txn.Commit()
+
+	return nil
+}
+
+func (s *StateStore) GetInstances() ([]*structs.Instance, error) {
+	txn := s.DB.Txn(false)
+	defer txn.Abort()
+
+	it, err := txn.Get("instance", "id")
+	if err != nil {
+		return nil, err
+	}
+
+	instances := make([]*structs.Instance, 0)
+
+	for obj := it.Next(); obj != nil; obj = it.Next() {
+		instances = append(instances, obj.(*structs.Instance))
+	}
+
+	return instances, nil
 }

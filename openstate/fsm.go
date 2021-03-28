@@ -2,13 +2,11 @@ package openstate
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 
-	"github.com/walkergriggs/openstate/api"
 	"github.com/walkergriggs/openstate/openstate/state"
 	"github.com/walkergriggs/openstate/openstate/structs"
 )
@@ -22,8 +20,8 @@ type openstateFSM struct {
 	state *state.StateStore
 
 	// Old way of doing things
-	definitions map[string]*Definition
-	instances   map[string]*Instance
+	definitions map[string]*structs.Definition
+	instances   map[string]*structs.Instance
 }
 
 // openstateFSMConfig is used to configure the openstateFSM
@@ -86,29 +84,7 @@ func (f *openstateFSM) applyDefineTask(reqType structs.MessageType, buf []byte, 
 		return err
 	}
 
-	f.definitions[def.Metadata.Name] = def
-
-	// REMOVE ME START
-	txn := f.state.DB.Txn(true)
-	if err := txn.Insert("definition", def); err != nil {
-		panic(err)
-	}
-
-	txn.Commit()
-
-	txn = f.state.DB.Txn(false)
-	defer txn.Abort()
-
-	raw, err := txn.First("definition", "id", def.Name)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(raw)
-	fmt.Println(raw.(*Definition).FSM)
-	// REMOVE ME STOP
-
-	return nil
+	return f.state.InsertDefinition(def)
 }
 
 // applyRunTask parses the task instance from the request and applies it to the
@@ -120,10 +96,7 @@ func (f *openstateFSM) applyRunTask(reqType structs.MessageType, buf []byte, ind
 		return err
 	}
 
-	instance := req.Instance
-
-	f.instances[instance.ID] = instance
-	return nil
+	return f.state.InsertInstance(req.Instance)
 }
 
 // Snapshot supports log compaction. This call should return an FSMSnapshot

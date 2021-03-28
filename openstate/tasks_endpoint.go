@@ -48,10 +48,9 @@ func (s *HTTPServer) tasksList(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 
-	defs := make([]*structs.Definition, 0)
-
-	for _, def := range s.server.fsm.definitions {
-		defs = append(defs, def)
+	defs, err := s.server.fsm.state.GetDefinitions()
+	if err != nil {
+		return nil, err
 	}
 
 	res := &structs.TaskListResponse{
@@ -115,7 +114,7 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 	}
 
 	instance := &structs.Instance{
-		ID:         fmt.Sprintf("%s-%s", def.Metadata.Name, generateUUID()),
+		ID:         fmt.Sprintf("%s-%s", def.Name, generateUUID()),
 		Definition: def,
 		FSM:        fsm,
 	}
@@ -153,8 +152,13 @@ func (s *HTTPServer) taskPs(resp http.ResponseWriter, req *http.Request, defName
 		return nil, fmt.Errorf("No task definition with name %s", defName)
 	}
 
+	allInstances, err := s.server.fsm.state.GetInstances()
+	if err != nil {
+		return nil, err
+	}
+
 	instances := make([]*structs.Instance, 0)
-	for id, instance := range s.server.fsm.instances {
+	for id, instance := range allInstances {
 		if strings.HasPrefix(id, defName) {
 			instances = append(instances, instance)
 		}

@@ -67,6 +67,8 @@ type DefinitionMetadata struct {
 
 	// Attributes is a map of task-relevant key-values pairs
 	Attributes map[string]string `yaml:"attributes"`
+
+	FSM *FSM `yaml:"state_machine"`
 }
 
 // FSM is used to serialize state machines
