@@ -94,8 +94,6 @@ func (s *StateStore) InsertDefinition(def *structs.Definition) error {
 		return fmt.Errorf("Definition with name %s already exists.", def.Name)
 	}
 
-	fmt.Println(def)
-
 	if err := txn.Insert("definition", def); err != nil {
 		return err
 	}
@@ -121,6 +119,22 @@ func (s *StateStore) GetDefinitions() ([]*structs.Definition, error) {
 	}
 
 	return defs, nil
+}
+
+func (s *StateStore) GetDefinitionByName(name string) (*structs.Definition, error) {
+	txn := s.DB.Txn(false)
+	defer txn.Abort()
+
+	obj, err := txn.First("definition", "id", name)
+	if err != nil {
+		return nil, err
+	}
+
+	if obj != nil {
+		return obj.(*structs.Definition), nil
+	}
+
+	return nil, nil
 }
 
 func (s *StateStore) InsertInstance(instance *structs.Instance) error {
@@ -161,4 +175,20 @@ func (s *StateStore) GetInstances() ([]*structs.Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func (s *StateStore) GetInstanceByID(id string) (*structs.Instance, error) {
+	txn := s.DB.Txn(false)
+	defer txn.Abort()
+
+	obj, err := txn.First("instance", "id", id)
+	if err != nil {
+		return nil, err
+	}
+
+	if obj != nil {
+		return obj.(*structs.Instance), nil
+	}
+
+	return nil, nil
 }

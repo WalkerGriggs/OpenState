@@ -22,7 +22,7 @@ func (s *HTTPServer) instanceSpecificRequest(resp http.ResponseWriter, req *http
 	}
 }
 
-func (s *HTTPServer) instanceEvent(resp http.ResponseWriter, req *http.Request, name string) (interface{}, error) {
+func (s *HTTPServer) instanceEvent(resp http.ResponseWriter, req *http.Request, id string) (interface{}, error) {
 	if ok, err := s.forward(resp, req); ok {
 		return nil, err
 	}
@@ -33,9 +33,13 @@ func (s *HTTPServer) instanceEvent(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	instance, ok := s.server.fsm.instances[name]
-	if !ok {
-		return nil, fmt.Errorf("No such instance %s\n", name)
+	instance, err := s.server.fsm.state.GetInstanceByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if instance == nil {
+		return nil, fmt.Errorf("No such instance %s\n", id)
 	}
 
 	if err := instance.FSM.Do(out.EventName); err != nil {

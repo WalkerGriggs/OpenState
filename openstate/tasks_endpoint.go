@@ -100,10 +100,13 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 		return nil, err
 	}
 
-	// We current don't need to decode the request body, because we're not sending
-	// anything from the API. Maybe in the future when instances get more complex..
-	def, ok := s.server.fsm.definitions[defName]
-	if !ok {
+	// Check to see if definition exists
+	def, err := s.server.fsm.state.GetDefinitionByName(defName)
+	if err != nil {
+		return nil, err
+	}
+
+	if def == nil {
 		return nil, fmt.Errorf("No task definition with name %s", defName)
 	}
 
@@ -148,7 +151,13 @@ func (s *HTTPServer) taskPs(resp http.ResponseWriter, req *http.Request, defName
 		return nil, err
 	}
 
-	if _, ok := s.server.fsm.definitions[defName]; !ok {
+	// Check to see if definition exists
+	def, err := s.server.fsm.state.GetDefinitionByName(defName)
+	if err != nil {
+		return nil, err
+	}
+
+	if def == nil {
 		return nil, fmt.Errorf("No task definition with name %s", defName)
 	}
 
@@ -158,8 +167,8 @@ func (s *HTTPServer) taskPs(resp http.ResponseWriter, req *http.Request, defName
 	}
 
 	instances := make([]*structs.Instance, 0)
-	for id, instance := range allInstances {
-		if strings.HasPrefix(id, defName) {
+	for _, instance := range allInstances {
+		if strings.HasPrefix(instance.ID, defName) {
 			instances = append(instances, instance)
 		}
 	}

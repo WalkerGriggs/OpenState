@@ -18,10 +18,6 @@ type openstateFSM struct {
 
 	// New way of doing things
 	state *state.StateStore
-
-	// Old way of doing things
-	definitions map[string]*structs.Definition
-	instances   map[string]*structs.Instance
 }
 
 // openstateFSMConfig is used to configure the openstateFSM
@@ -38,9 +34,7 @@ type openstateSnapshot struct {
 // NewFSM returns a FSM given a config.
 func NewFSM(config *openstateFSMConfig) (*openstateFSM, error) {
 	fsm := &openstateFSM{
-		definitions: make(map[string]*structs.Definition),
-		instances:   make(map[string]*structs.Instance),
-		logger:      config.Logger,
+		logger: config.Logger,
 	}
 
 	var err error
@@ -103,24 +97,13 @@ func (f *openstateFSM) applyRunTask(reqType structs.MessageType, buf []byte, ind
 // which can be used to save a point-in-time snapshot of the FSM.
 // TODO: Snapshot running instances
 func (f *openstateFSM) Snapshot() (raft.FSMSnapshot, error) {
-	defs := make(map[string]*structs.Definition)
-	for k, v := range f.definitions {
-		defs[k] = v
-	}
-
-	return &openstateSnapshot{defs}, nil
+	return nil, nil
 }
 
 // Restore is used to restore an FSM from a snapshot. It is not called
 // concurrently with any other command. The FSM must discard all previous state.
 // TODO restore running instances
 func (f *openstateFSM) Restore(rc io.ReadCloser) error {
-	defs := make(map[string]*structs.Definition)
-	if err := json.NewDecoder(rc).Decode(&defs); err != nil {
-		return err
-	}
-
-	f.definitions = defs
 	return nil
 }
 
