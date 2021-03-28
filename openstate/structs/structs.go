@@ -1,4 +1,4 @@
-package openstate
+package structs
 
 import (
 	"fmt"

@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
+
+	"github.com/walkergriggs/openstate/openstate/structs"
 )
 
-func (s *Server) raftApply(t MessageType, msg interface{}) (interface{}, uint64, error) {
+func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, uint64, error) {
 	future, err := s.raftApplyFuture(t, msg)
 	if err != nil {
 		return nil, 0, err
@@ -21,7 +23,7 @@ func (s *Server) raftApply(t MessageType, msg interface{}) (interface{}, uint64,
 	return future.Response(), future.Index(), nil
 }
 
-func (s *Server) raftApplyFuture(t MessageType, msg interface{}) (raft.ApplyFuture, error) {
+func (s *Server) raftApplyFuture(t structs.MessageType, msg interface{}) (raft.ApplyFuture, error) {
 	buf, err := json.Marshal(msg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)

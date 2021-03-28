@@ -6,14 +6,16 @@ import (
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
+
+	"github.com/walkergriggs/openstate/openstate/structs"
 )
 
 // openstateFSM implements raft.FSM and is used for strongly consistent state
 // replication across the cluster.
 type openstateFSM struct {
 	logger      log.Logger
-	definitions map[string]*Definition
-	instances   map[string]*Instance
+	definitions map[string]*structs.Definition
+	instances   map[string]*structs.Instance
 }
 
 // openstateFSMConfig is used to configure the openstateFSM
@@ -24,14 +26,14 @@ type openstateFSMConfig struct {
 // openstateSnapshot implements raft.FSMSnapshot and is used to persist a
 // point-in-time replica of the FSM's state to disk.
 type openstateSnapshot struct {
-	definitions map[string]*Definition
+	definitions map[string]*structs.Definition
 }
 
 // NewFSM returns a FSM given a config.
 func NewFSM(config *openstateFSMConfig) (*openstateFSM, error) {
 	return &openstateFSM{
-		definitions: make(map[string]*Definition),
-		instances:   make(map[string]*Instance),
+		definitions: make(map[string]*structs.Definition),
+		instances:   make(map[string]*structs.Instance),
 		logger:      config.Logger,
 	}, nil
 }
@@ -40,12 +42,12 @@ func NewFSM(config *openstateFSMConfig) (*openstateFSM, error) {
 // FSM
 func (f *openstateFSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
-	msgType := MessageType(buf[0])
+	msgType := structs.MessageType(buf[0])
 
 	switch msgType {
-	case TaskDefineRequestType:
+	case structs.TaskDefineRequestType:
 		return f.applyDefineTask(msgType, buf[1:], log.Index)
-	case TaskRunRequestType:
+	case structs.TaskRunRequestType:
 		return f.applyRunTask(msgType, buf[1:], log.Index)
 	}
 
@@ -54,8 +56,8 @@ func (f *openstateFSM) Apply(log *raft.Log) interface{} {
 
 // applyDefineTask parses the task definition from the request and applies it to
 // the Raft cluster
-func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index uint64) interface{} {
-	var req TaskDefineRequest
+func (f *openstateFSM) applyDefineTask(reqType structs.MessageType, buf []byte, index uint64) interface{} {
+	var req structs.TaskDefineRequest
 	if err := json.Unmarshal(buf, &req); err != nil {
 		f.logger.Error("decode raft log err %v", err)
 		return err
@@ -73,8 +75,8 @@ func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index ui
 
 // applyRunTask parses the task instance from the request and applies it to the
 // Raft cluster
-func (f *openstateFSM) applyRunTask(reqType MessageType, buf []byte, index uint64) interface{} {
-	var req TaskRunRequest
+func (f *openstateFSM) applyRunTask(reqType structs.MessageType, buf []byte, index uint64) interface{} {
+	var req structs.TaskRunRequest
 	if err := json.Unmarshal(buf, &req); err != nil {
 		f.logger.Error("decode raft log err %v", err)
 		return err
@@ -90,7 +92,7 @@ func (f *openstateFSM) applyRunTask(reqType MessageType, buf []byte, index uint6
 // which can be used to save a point-in-time snapshot of the FSM.
 // TODO: Snapshot running instances
 func (f *openstateFSM) Snapshot() (raft.FSMSnapshot, error) {
-	defs := make(map[string]*Definition)
+	defs := make(map[string]*structs.Definition)
 	for k, v := range f.definitions {
 		defs[k] = v
 	}
@@ -102,7 +104,7 @@ func (f *openstateFSM) Snapshot() (raft.FSMSnapshot, error) {
 // concurrently with any other command. The FSM must discard all previous state.
 // TODO restore running instances
 func (f *openstateFSM) Restore(rc io.ReadCloser) error {
-	defs := make(map[string]*Definition)
+	defs := make(map[string]*structs.Definition)
 	if err := json.NewDecoder(rc).Decode(&defs); err != nil {
 		return err
 	}

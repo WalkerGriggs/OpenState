@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/walkergriggs/openstate/api"
+	"github.com/walkergriggs/openstate/openstate/structs"
 )
 
 // tasksRequest routes a request to the various functions which apply to all tasks.
@@ -47,13 +48,13 @@ func (s *HTTPServer) tasksList(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 
-	defs := make([]*Definition, 0)
+	defs := make([]*structs.Definition, 0)
 
 	for _, def := range s.server.fsm.definitions {
 		defs = append(defs, def)
 	}
 
-	res := &TaskListResponse{
+	res := &structs.TaskListResponse{
 		Definitions: defs,
 	}
 
@@ -68,13 +69,13 @@ func (s *HTTPServer) tasksUpdate(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	// Decode and repackage
-	var out TaskDefineRequest
+	var out structs.TaskDefineRequest
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&out); err != nil {
 		return nil, err
 	}
 
-	fsmErr, _, err := s.server.raftApply(TaskDefineRequestType, out)
+	fsmErr, _, err := s.server.raftApply(structs.TaskDefineRequestType, out)
 	if err, ok := fsmErr.(error); ok && err != nil {
 		s.logger.Error("Failed to update FSM", "error", err, "fsm", true)
 		return nil, err
@@ -86,7 +87,7 @@ func (s *HTTPServer) tasksUpdate(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	// TODO return more than the requested definition
-	res := TaskDefineResponse{
+	res := structs.TaskDefineResponse{
 		Definition: out.Definition,
 	}
 
@@ -113,17 +114,17 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 		return nil, err
 	}
 
-	instance := &Instance{
+	instance := &structs.Instance{
 		ID:         fmt.Sprintf("%s-%s", def.Metadata.Name, generateUUID()),
 		Definition: def,
 		FSM:        fsm,
 	}
 
-	args := &TaskRunRequest{
+	args := &structs.TaskRunRequest{
 		Instance: instance,
 	}
 
-	fsmErr, _, err := s.server.raftApply(TaskRunRequestType, args)
+	fsmErr, _, err := s.server.raftApply(structs.TaskRunRequestType, args)
 	if err, ok := fsmErr.(error); ok && err != nil {
 		s.logger.Error("Failed to update FSM", "error", err, "fsm", true)
 		return nil, err
@@ -134,7 +135,7 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 		return nil, err
 	}
 
-	res := TaskRunResponse{
+	res := structs.TaskRunResponse{
 		Instance: instance,
 	}
 
@@ -152,14 +153,14 @@ func (s *HTTPServer) taskPs(resp http.ResponseWriter, req *http.Request, defName
 		return nil, fmt.Errorf("No task definition with name %s", defName)
 	}
 
-	instances := make([]*Instance, 0)
+	instances := make([]*structs.Instance, 0)
 	for id, instance := range s.server.fsm.instances {
 		if strings.HasPrefix(id, defName) {
 			instances = append(instances, instance)
 		}
 	}
 
-	res := &TaskPsResponse{
+	res := &structs.TaskPsResponse{
 		Instances: instances,
 	}
 
