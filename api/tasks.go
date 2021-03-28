@@ -10,16 +10,21 @@ type Tasks struct {
 	client *Client
 }
 
+// FSMs wraps the client for task-specific endpoints
+func (c *Client) Tasks() *Tasks {
+	return &Tasks{client: c}
+}
+
 // Definition is used to serialize task definitions
 type Definition struct {
 	// Metadata groups task-related descriptors
-	Metadata *Metadata `yaml:"metadata"`
+	Metadata *DefinitionMetadata `yaml:"metadata"`
 
 	FSM *FSM `yaml:"state_machine"`
 }
 
 // Metadata groups task-related descriptors
-type Metadata struct {
+type DefinitionMetadata struct {
 	// Name is a globally unique name for the task.
 	Name string `yaml:"name"`
 
@@ -49,11 +54,6 @@ type Event struct {
 	Src []string `yaml:"sources"`
 }
 
-// FSMs wraps the client for task-specific endpoints
-func (c *Client) Tasks() *Tasks {
-	return &Tasks{client: c}
-}
-
 type (
 	// TaskDefineRequest is used to serialize a Define request
 	TaskDefineRequest struct {
@@ -62,9 +62,7 @@ type (
 
 	// TaskDefineResponse is used to serialize a Define response
 	TaskDefineResponse struct {
-		Index      uint64
-		Name       string
-		Attributes map[string]string
+		Definition *Definition
 	}
 )
 
@@ -88,8 +86,7 @@ type (
 
 	// TaskListResponse is used to serialize a List response
 	TaskListResponse struct {
-		Len   int
-		Names []string
+		Definitions []*Definition
 	}
 )
 
@@ -109,7 +106,7 @@ type (
 
 	// TaskRunResponse is used to serialize a Run resonse
 	TaskRunResponse struct {
-		InstanceID string
+		Instance *Instance
 	}
 )
 
@@ -132,8 +129,7 @@ type (
 
 	// TaskPsResponse is used to serialize a Ps response
 	TaskPsResponse struct {
-		Len int
-		IDs []string
+		Instances []*Instance
 	}
 )
 

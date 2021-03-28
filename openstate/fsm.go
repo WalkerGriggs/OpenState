@@ -6,8 +6,6 @@ import (
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
-
-	"github.com/walkergriggs/openstate/api"
 )
 
 // openstateFSM implements raft.FSM and is used for strongly consistent state
@@ -63,17 +61,13 @@ func (f *openstateFSM) applyDefineTask(reqType MessageType, buf []byte, index ui
 		return err
 	}
 
-	def := &Definition{
-		Name:       req.Definition.Metadata.Name,
-		Attributes: req.Definition.Metadata.Attributes,
-		FSM:        req.Definition.FSM,
-	}
+	def := req.Definition
 
 	if err := def.Validate(); err != nil {
 		return err
 	}
 
-	f.definitions[def.Name] = def
+	f.definitions[def.Metadata.Name] = def
 	return nil
 }
 
@@ -86,16 +80,7 @@ func (f *openstateFSM) applyRunTask(reqType MessageType, buf []byte, index uint6
 		return err
 	}
 
-	fsm, err := api.Ftof(req.Definition.FSM)
-	if err != nil {
-		return err
-	}
-
-	instance := &Instance{
-		ID:         req.InstanceID,
-		Definition: req.Definition,
-		FSM:        fsm,
-	}
+	instance := req.Instance
 
 	f.instances[instance.ID] = instance
 	return nil

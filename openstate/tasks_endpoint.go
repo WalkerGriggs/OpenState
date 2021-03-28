@@ -42,19 +42,19 @@ func (s *HTTPServer) taskSpecificRequest(resp http.ResponseWriter, req *http.Req
 // TODO return a list of metadata, not just the total count of tasks.
 // TODO allow stale reads from the follower, so the request isn't forwarded to
 //      the leader.
-func (s *HTTPServer) tasksList(resp http.ResponseWriter, req *http.Request) (*api.TaskListResponse, error) {
+func (s *HTTPServer) tasksList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if ok, err := s.forward(resp, req); ok {
 		return nil, err
 	}
 
-	names := make([]string, 0)
-	for name, _ := range s.server.fsm.definitions {
-		names = append(names, name)
+	defs := make([]*Definition, 0)
+
+	for _, def := range s.server.fsm.definitions {
+		defs = append(defs, def)
 	}
 
-	res := &api.TaskListResponse{
-		Len:   len(s.server.fsm.definitions),
-		Names: names,
+	res := &TaskListResponse{
+		Definitions: defs,
 	}
 
 	return res, nil
@@ -68,18 +68,13 @@ func (s *HTTPServer) tasksUpdate(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	// Decode and repackage
-	var out api.TaskDefineRequest
+	var out TaskDefineRequest
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&out); err != nil {
 		return nil, err
 	}
 
-	// TaskAddRequest
-	args := &TaskDefineRequest{
-		Definition: out.Definition,
-	}
-
-	fsmErr, index, err := s.server.raftApply(TaskDefineRequestType, args)
+	fsmErr, _, err := s.server.raftApply(TaskDefineRequestType, out)
 	if err, ok := fsmErr.(error); ok && err != nil {
 		s.logger.Error("Failed to update FSM", "error", err, "fsm", true)
 		return nil, err
@@ -90,10 +85,9 @@ func (s *HTTPServer) tasksUpdate(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	res := &api.TaskDefineResponse{
-		Index:      index,
-		Name:       out.Definition.Metadata.Name,
-		Attributes: out.Definition.Metadata.Attributes,
+	// TODO return more than the requested definition
+	res := TaskDefineResponse{
+		Definition: out.Definition,
 	}
 
 	return res, nil
@@ -108,15 +102,25 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 
 	// We current don't need to decode the request body, because we're not sending
 	// anything from the API. Maybe in the future when instances get more complex..
-
 	def, ok := s.server.fsm.definitions[defName]
 	if !ok {
 		return nil, fmt.Errorf("No task definition with name %s", defName)
 	}
 
-	args := &TaskRunRequest{
-		InstanceID: fmt.Sprintf("%s-%s", def.Name, generateUUID()),
+	// Convert from api.FSM to fsm.FSM
+	fsm, err := api.Ftof(def.FSM)
+	if err != nil {
+		return nil, err
+	}
+
+	instance := &Instance{
+		ID:         fmt.Sprintf("%s-%s", def.Metadata.Name, generateUUID()),
 		Definition: def,
+		FSM:        fsm,
+	}
+
+	args := &TaskRunRequest{
+		Instance: instance,
 	}
 
 	fsmErr, _, err := s.server.raftApply(TaskRunRequestType, args)
@@ -130,8 +134,8 @@ func (s *HTTPServer) taskRun(resp http.ResponseWriter, req *http.Request, defNam
 		return nil, err
 	}
 
-	res := &api.TaskRunResponse{
-		InstanceID: args.InstanceID,
+	res := TaskRunResponse{
+		Instance: instance,
 	}
 
 	return res, nil
@@ -148,16 +152,15 @@ func (s *HTTPServer) taskPs(resp http.ResponseWriter, req *http.Request, defName
 		return nil, fmt.Errorf("No task definition with name %s", defName)
 	}
 
-	ids := make([]string, 0)
-	for id, _ := range s.server.fsm.instances {
+	instances := make([]*Instance, 0)
+	for id, instance := range s.server.fsm.instances {
 		if strings.HasPrefix(id, defName) {
-			ids = append(ids, id)
+			instances = append(instances, instance)
 		}
 	}
 
-	res := &api.TaskPsResponse{
-		Len: len(ids),
-		IDs: ids,
+	res := &TaskPsResponse{
+		Instances: instances,
 	}
 
 	return res, nil

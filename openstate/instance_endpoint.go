@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/walkergriggs/openstate/api"
 )
 
 // taskSpecificRequest routes a request to various functions which apply to an
@@ -27,7 +25,7 @@ func (s *HTTPServer) instanceEvent(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	var out api.InstanceEventRequest
+	var out InstanceEventRequest
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&out); err != nil {
 		return nil, err
@@ -42,8 +40,8 @@ func (s *HTTPServer) instanceEvent(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	res := &api.InstanceEventResponse{
-		CurrentState: instance.FSM.State(),
+	res := InstanceEventResponse{
+		Instance: instance,
 	}
 
 	return res, nil
