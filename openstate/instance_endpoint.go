@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/walkergriggs/openstate/openstate/structs"
 )
 
 // taskSpecificRequest routes a request to various functions which apply to an
@@ -25,7 +27,7 @@ func (s *HTTPServer) instanceEvent(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	var out InstanceEventRequest
+	var out structs.InstanceEventRequest
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&out); err != nil {
 		return nil, err
@@ -40,7 +42,7 @@ func (s *HTTPServer) instanceEvent(resp http.ResponseWriter, req *http.Request, 
 		return nil, err
 	}
 
-	res := InstanceEventResponse{
+	res := structs.InstanceEventResponse{
 		Instance: instance,
 	}
 
