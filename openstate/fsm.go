@@ -2,20 +2,28 @@ package openstate
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 
+	"github.com/walkergriggs/openstate/api"
+	"github.com/walkergriggs/openstate/openstate/state"
 	"github.com/walkergriggs/openstate/openstate/structs"
 )
 
 // openstateFSM implements raft.FSM and is used for strongly consistent state
 // replication across the cluster.
 type openstateFSM struct {
-	logger      log.Logger
-	definitions map[string]*structs.Definition
-	instances   map[string]*structs.Instance
+	logger log.Logger
+
+	// New way of doing things
+	state *state.StateStore
+
+	// Old way of doing things
+	definitions map[string]*Definition
+	instances   map[string]*Instance
 }
 
 // openstateFSMConfig is used to configure the openstateFSM
@@ -31,11 +39,20 @@ type openstateSnapshot struct {
 
 // NewFSM returns a FSM given a config.
 func NewFSM(config *openstateFSMConfig) (*openstateFSM, error) {
-	return &openstateFSM{
+	fsm := &openstateFSM{
 		definitions: make(map[string]*structs.Definition),
 		instances:   make(map[string]*structs.Instance),
 		logger:      config.Logger,
-	}, nil
+	}
+
+	var err error
+
+	fsm.state, err = state.NewStateStore(&state.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	return fsm, nil
 }
 
 // Apply is invoked once a log entry is committed and persists the log to the
@@ -70,6 +87,27 @@ func (f *openstateFSM) applyDefineTask(reqType structs.MessageType, buf []byte, 
 	}
 
 	f.definitions[def.Metadata.Name] = def
+
+	// REMOVE ME START
+	txn := f.state.DB.Txn(true)
+	if err := txn.Insert("definition", def); err != nil {
+		panic(err)
+	}
+
+	txn.Commit()
+
+	txn = f.state.DB.Txn(false)
+	defer txn.Abort()
+
+	raw, err := txn.First("definition", "id", def.Name)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(raw)
+	fmt.Println(raw.(*Definition).FSM)
+	// REMOVE ME STOP
+
 	return nil
 }
 
