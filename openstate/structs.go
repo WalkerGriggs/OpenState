@@ -14,31 +14,80 @@ const (
 	TaskRunRequestType    MessageType = 1
 )
 
-// TaskDefineRequest is used to serialize a task definition request to be sent
-// over Raft logs
-type TaskDefineRequest struct {
-	Definition *api.Definition
-}
+type (
+	// TaskListRequest is used to serialize a List request
+	TaskListRequest struct{}
 
-// TaskRunRequest is used to serialize a task run request to be sent over Raft
-// logs
-type TaskRunRequest struct {
-	InstanceID string
-	Definition *Definition
-}
+	// TaskListResponse is used to serialize a List response
+	TaskListResponse struct {
+		Definitions []*Definition
+	}
+)
+
+type (
+	// TaskDefineRequest is used to serialize a Define request
+	TaskDefineRequest struct {
+		Definition *Definition
+	}
+
+	// TaskDefineResponse is used to serialize a Define response
+	TaskDefineResponse struct {
+		Definition *Definition
+	}
+)
+
+type (
+	// TaskRunRequest is used to serialize a Run request
+	TaskRunRequest struct {
+		Instance *Instance
+	}
+
+	// TaskRunResponse is used to serialize a Run resonse
+	TaskRunResponse struct {
+		Instance *Instance
+	}
+)
+
+type (
+	// TaskPsRequest is used to serialize a Ps request
+	TaskPsRequest struct{}
+
+	// TaskPsResponse is used to serialize a Ps response
+	TaskPsResponse struct {
+		Instances []*Instance
+	}
+)
+
+type (
+	// InstanceRunRequest is used to serialize an Event request
+	InstanceEventRequest struct {
+		EventName string
+	}
+
+	// InstanceEventResponse is used to serialize an Event response
+	InstanceEventResponse struct {
+		Instance *Instance
+	}
+)
 
 // Definition is used to define task workflows.
 type Definition struct {
-	// Name is used to describe the task and all versions,
-	Name string
-
-	// Attributes are opaque descriptors to decorate the task.
-	Attributes map[string]string
+	// Metadata groups task-related descriptors
+	Metadata *DefinitionMetadata
 
 	// FSM is the API's serialized description of a desired finite state machine.
 	// This FSM has no functionality aside from being used to create an instance's
 	// fsm.FSM.
 	FSM *api.FSM
+}
+
+// Metadata groups task-related descriptors
+type DefinitionMetadata struct {
+	// Name is used to describe the task and all versions,
+	Name string
+
+	// Attributes are opaque descriptors to decorate the task.
+	Attributes map[string]string
 }
 
 // Instance is used to run a defined workflow.
@@ -60,7 +109,7 @@ type Instance struct {
 // Validate is used to check the validity of a task object. Validate is not
 // considered comprehensive at this time.
 func (d *Definition) Validate() error {
-	if d.Name == "" {
+	if d.Metadata.Name == "" {
 		return fmt.Errorf("Missing name")
 	}
 
