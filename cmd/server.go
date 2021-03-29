@@ -43,6 +43,9 @@ General Options:
 		Path to directory where OpenState stores state related objects;
 		primarily snapshots, logs, and the stable store.
 
+	--no-banner
+		Do not print the OpenState ascii banner
+
 Server Options:
 
 	--raft-address=<address>
@@ -122,6 +125,10 @@ func (o *ServerOptions) Complete(cmd *cobra.Command, args []string) error {
 // Run reads in the config file, overwrites any values with flags, and starts
 // the server.
 func (o *ServerOptions) Run() {
+	if !o.config.NoBanner {
+		o.Meta.UI.Info(Banner(0))
+	}
+
 	// Read the config file and unmarshal the results
 	config, err := unmarshalConfig(o.configPath, o.Meta.UI)
 	if err != nil {
@@ -147,8 +154,8 @@ func (o *ServerOptions) Run() {
 	})
 
 	info := make(map[string]string)
-	info["log level"] = config.LogLevel
-	info["dev mode"] = strconv.FormatBool(serverConfig.DevMode)
+	info["Log Level"] = config.LogLevel
+	info["Dev Mode"] = strconv.FormatBool(serverConfig.DevMode)
 	info["Advertise Addrs"] = fmt.Sprintf("HTTP: %s Serf: %s Raft: %s",
 		serverConfig.HTTPAdvertise.String(),
 		serverConfig.SerfAdvertise.String(),
@@ -160,12 +167,12 @@ func (o *ServerOptions) Run() {
 	for k, v := range info {
 		o.Meta.UI.Info(fmt.Sprintf(
 			"%s%s: %s",
-			strings.Repeat(" ", 18-len(k)),
+			strings.Repeat(" ", 20-len(k)),
 			strings.Title(k), v))
 	}
 
 	o.Meta.UI.Output("")
-	o.Meta.UI.Output("Starting OpenState server...\n")
+	o.Meta.UI.Output("Starting OpenState server:\n")
 
 	// Create the new server
 	server, err := openstate.NewServer(serverConfig)
@@ -211,6 +218,7 @@ func NewCmdServer() *cobra.Command {
 	cmd.Flags().IntVar(&config.Server.BootstrapExpect, "bootstrap-expect", config.Server.BootstrapExpect, "")
 
 	// General Flags
+	cmd.Flags().BoolVar(&config.NoBanner, "no-banner", config.NoBanner, "")
 	cmd.Flags().BoolVar(&config.DevMode, "dev", config.DevMode, "")
 	cmd.Flags().StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
 	cmd.Flags().StringVar(&config.DataDirectory, "data-dir", config.DataDirectory, "")

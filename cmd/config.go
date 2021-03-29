@@ -22,6 +22,9 @@ type (
 	// Config is the umbrella struct with encompasses every configurable value in
 	// OpenState's config file.
 	Config struct {
+		// NoBanner indicates if we should not print the ASCII OpenState banner
+		NoBanner bool `mapstructure:"no_banner"`
+
 		// DevMode indicates if the OpenState server should run in development mode.
 		// This disables the log, stable, and snapshot stores, and uses a simple
 		// in-memory store instead.
@@ -217,7 +220,7 @@ func unmarshalConfig(p string, ui cli.Ui) (*Config, error) {
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName(configName)
 
-	ui.Output(fmt.Sprintf("Checking for config '%s' in %s", configName, configPath))
+	ui.Output(fmt.Sprintf("Checking for config file '%s.*' in %s", configName, configPath))
 
 	if err := viper.ReadInConfig(); err != nil {
 		switch err.(type) {
