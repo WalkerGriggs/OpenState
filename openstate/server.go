@@ -57,12 +57,12 @@ func NewServer(c *Config) (*Server, error) {
 
 	s.raft, err = s.setupRaft()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to start Raft: %v", err)
+		return nil, fmt.Errorf("Failed to start Raft: %v", err.Error())
 	}
 
 	s.serf, err = s.setupSerf()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to start Serf: %v", err)
+		return nil, fmt.Errorf("Failed to start Serf: %v", err.Error())
 	}
 
 	// Handle Serf events

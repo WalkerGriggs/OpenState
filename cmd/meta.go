@@ -3,13 +3,14 @@ package cmd
 import (
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/pflag"
 
 	"github.com/walkergriggs/openstate/api"
 )
 
 type Meta struct {
-	UI      UI
+	UI      cli.Ui
 	Address string
 }
 

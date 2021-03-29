@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
@@ -30,7 +31,11 @@ type TaskDefineOptions struct {
 }
 
 func NewTaskDefineOptions() *TaskDefineOptions {
-	ui := &SimpleUI{os.Stdout}
+	ui := &cli.BasicUi{
+		Reader:      os.Stdin,
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
 
 	return &TaskDefineOptions{
 		Meta: Meta{UI: ui},

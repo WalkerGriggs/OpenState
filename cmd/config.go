@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/viper"
 
 	"github.com/walkergriggs/openstate/openstate"
@@ -21,6 +22,9 @@ type (
 	// Config is the umbrella struct with encompasses every configurable value in
 	// OpenState's config file.
 	Config struct {
+		// NoBanner indicates if we should not print the ASCII OpenState banner
+		NoBanner bool `mapstructure:"no_banner"`
+
 		// DevMode indicates if the OpenState server should run in development mode.
 		// This disables the log, stable, and snapshot stores, and uses a simple
 		// in-memory store instead.
@@ -195,7 +199,7 @@ func (conf *Config) ctoc() (*openstate.Config, error) {
 
 // unmarshalConfig reads in the config file from either the default directory
 // or the given path and returns the extracted values in a Config struct.
-func unmarshalConfig(p string) (*Config, error) {
+func unmarshalConfig(p string, ui cli.Ui) (*Config, error) {
 	viper.BindEnv("dev_mode")
 	viper.BindEnv("log_level")
 	viper.BindEnv("data_directory")
@@ -216,10 +220,12 @@ func unmarshalConfig(p string) (*Config, error) {
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName(configName)
 
+	ui.Output(fmt.Sprintf("Checking for config file '%s.*' in %s", configName, configPath))
+
 	if err := viper.ReadInConfig(); err != nil {
 		switch err.(type) {
 		case viper.ConfigFileNotFoundError:
-			fmt.Println("No config file found. Falling back to environment variables.")
+			ui.Output("No config file found. Falling back to environment variables.")
 		default:
 			return nil, err
 		}
@@ -233,8 +239,6 @@ func unmarshalConfig(p string) (*Config, error) {
 	if err := viper.Unmarshal(config); err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("%+v\n", config)
 
 	return config, nil
 }

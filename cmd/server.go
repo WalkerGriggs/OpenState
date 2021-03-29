@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	log "github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/cli"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
@@ -39,6 +42,9 @@ General Options:
 	--data-dir=<path>
 		Path to directory where OpenState stores state related objects;
 		primarily snapshots, logs, and the stable store.
+
+	--no-banner
+		Do not print the OpenState ascii banner
 
 Server Options:
 
@@ -75,12 +81,27 @@ Server Options:
 // ServerOptions wraps the Config and any additional flags needed to run a new
 // server.
 type ServerOptions struct {
+	Meta
 	config     *Config
 	configPath string
 }
 
 func NewServerOptions() *ServerOptions {
+	ui := &cli.BasicUi{
+		Reader:      os.Stdin,
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
+
+	pui := &cli.PrefixedUi{
+		OutputPrefix: "... ",
+		InfoPrefix:   "    ",
+		ErrorPrefix:  "... ",
+		Ui:           ui,
+	}
+
 	return &ServerOptions{
+		Meta: Meta{UI: pui},
 		config: &Config{
 			Addrs:  &AdvertiseAddrs{},
 			Server: &ServerConfig{},
@@ -104,9 +125,14 @@ func (o *ServerOptions) Complete(cmd *cobra.Command, args []string) error {
 // Run reads in the config file, overwrites any values with flags, and starts
 // the server.
 func (o *ServerOptions) Run() {
+	if !o.config.NoBanner {
+		o.Meta.UI.Info(Banner(0))
+	}
+
 	// Read the config file and unmarshal the results
-	config, err := unmarshalConfig(o.configPath)
+	config, err := unmarshalConfig(o.configPath, o.Meta.UI)
 	if err != nil {
+		o.UI.Error(err.Error())
 		return
 	}
 
@@ -116,21 +142,43 @@ func (o *ServerOptions) Run() {
 	// Convert cmd.Config to openstate.Config
 	serverConfig, err := config.ctoc()
 	if err != nil {
+		o.UI.Error(err.Error())
 		return
 	}
 
 	// Set the logger
-	// TODO Extract this to it's own "finalize" function
 	serverConfig.Logger = log.NewInterceptLogger(&log.LoggerOptions{
 		Name:   "OpenState",
 		Level:  log.LevelFromString(config.LogLevel),
-		Output: os.Stdout,
+		Output: serverConfig.LogOutput,
 	})
+
+	info := make(map[string]string)
+	info["Log Level"] = config.LogLevel
+	info["Dev Mode"] = strconv.FormatBool(serverConfig.DevMode)
+	info["Advertise Addrs"] = fmt.Sprintf("HTTP: %s Serf: %s Raft: %s",
+		serverConfig.HTTPAdvertise.String(),
+		serverConfig.SerfAdvertise.String(),
+		serverConfig.RaftAdvertise.String(),
+	)
+
+	o.Meta.UI.Output("Server configuration:\n")
+
+	for k, v := range info {
+		o.Meta.UI.Info(fmt.Sprintf(
+			"%s%s: %s",
+			strings.Repeat(" ", 20-len(k)),
+			strings.Title(k), v))
+	}
+
+	o.Meta.UI.Output("")
+	o.Meta.UI.Output("Starting OpenState server:\n")
 
 	// Create the new server
 	server, err := openstate.NewServer(serverConfig)
 	if err != nil {
-		panic(err)
+		o.Meta.UI.Error(err.Error())
+		return
 	}
 
 	// Wrap the server and expose it over HTTP endpoints
@@ -170,6 +218,7 @@ func NewCmdServer() *cobra.Command {
 	cmd.Flags().IntVar(&config.Server.BootstrapExpect, "bootstrap-expect", config.Server.BootstrapExpect, "")
 
 	// General Flags
+	cmd.Flags().BoolVar(&config.NoBanner, "no-banner", config.NoBanner, "")
 	cmd.Flags().BoolVar(&config.DevMode, "dev", config.DevMode, "")
 	cmd.Flags().StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
 	cmd.Flags().StringVar(&config.DataDirectory, "data-dir", config.DataDirectory, "")
