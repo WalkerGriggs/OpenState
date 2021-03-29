@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/viper"
 
 	"github.com/walkergriggs/openstate/openstate"
@@ -195,7 +196,7 @@ func (conf *Config) ctoc() (*openstate.Config, error) {
 
 // unmarshalConfig reads in the config file from either the default directory
 // or the given path and returns the extracted values in a Config struct.
-func unmarshalConfig(p string) (*Config, error) {
+func unmarshalConfig(p string, ui cli.Ui) (*Config, error) {
 	viper.BindEnv("dev_mode")
 	viper.BindEnv("log_level")
 	viper.BindEnv("data_directory")
@@ -216,10 +217,12 @@ func unmarshalConfig(p string) (*Config, error) {
 	viper.AddConfigPath(configPath)
 	viper.SetConfigName(configName)
 
+	ui.Output(fmt.Sprintf("Checking for config '%s' in %s", configName, configPath))
+
 	if err := viper.ReadInConfig(); err != nil {
 		switch err.(type) {
 		case viper.ConfigFileNotFoundError:
-			fmt.Println("No config file found. Falling back to environment variables.")
+			ui.Output("No config file found. Falling back to environment variables.")
 		default:
 			return nil, err
 		}
@@ -233,8 +236,6 @@ func unmarshalConfig(p string) (*Config, error) {
 	if err := viper.Unmarshal(config); err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("%+v\n", config)
 
 	return config, nil
 }

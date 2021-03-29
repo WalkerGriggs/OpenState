@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +25,11 @@ type TaskListOptions struct {
 }
 
 func NewTaskListOptions() *TaskListOptions {
-	ui := &SimpleUI{os.Stdout}
+	ui := &cli.BasicUi{
+		Reader:      os.Stdin,
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
 
 	return &TaskListOptions{
 		Meta: Meta{UI: ui},

@@ -116,7 +116,7 @@ func DefaultConfig() *Config {
 		DevMode:         false,
 		DataDirectory:   path.Join(home, ".openstate"),
 		HTTPAdvertise:   DefaultHTTPAddr(),
-		LogOutput:       os.Stdout,
+		LogOutput:       os.Stderr,
 		NodeID:          generateUUID(),
 		NodeName:        "",
 		Peers:           make([]string, 0),

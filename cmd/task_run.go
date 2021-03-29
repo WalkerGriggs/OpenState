@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,11 @@ type TaskRunOptions struct {
 }
 
 func NewTaskRunOptions() *TaskRunOptions {
-	ui := &SimpleUI{os.Stdout}
+	ui := &cli.BasicUi{
+		Reader:      os.Stdin,
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
 
 	return &TaskRunOptions{
 		Meta: Meta{UI: ui},

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mitchellh/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,11 @@ type TaskPsOptions struct {
 }
 
 func NewTaskPsOptions() *TaskPsOptions {
-	ui := &SimpleUI{os.Stdout}
+	ui := &cli.BasicUi{
+		Reader:      os.Stdin,
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
 
 	return &TaskPsOptions{
 		Meta: Meta{UI: ui},
