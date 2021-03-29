@@ -7,6 +7,8 @@ import (
 
 	"github.com/mitchellh/cli"
 	"github.com/spf13/cobra"
+
+	"github.com/walkergriggs/openstate/api"
 )
 
 func TaskListUsageTemplate() string {
@@ -49,7 +51,9 @@ func (o *TaskListOptions) Run() {
 		return
 	}
 
-	fmt.Printf("%+v\n", *res)
+	table := FormatTable(formatDefinitions(res.Definitions))
+
+	o.UI.Output(table)
 }
 
 func (o *TaskListOptions) Name() string {
@@ -72,4 +76,14 @@ func NewCmdTaskList() *cobra.Command {
 	cmd.SetUsageTemplate(TaskListUsageTemplate())
 
 	return cmd
+}
+
+func formatDefinitions(definitions []*api.Definition) (data [][]string) {
+	data = append(data, []string{"Name"})
+
+	for _, def := range definitions {
+		data = append(data, []string{def.Metadata.Name})
+	}
+
+	return
 }
