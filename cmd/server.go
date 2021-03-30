@@ -195,7 +195,8 @@ func NewCmdServer() *cobra.Command {
 	config := o.config
 
 	cmd := &cobra.Command{
-		Use: "server",
+		Use:   "server",
+		Short: "Runs an OpenState server",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := o.Complete(cmd, args); err != nil {
 				return
