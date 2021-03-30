@@ -85,7 +85,7 @@ func (o *TaskDefineOptions) Run() {
 		return
 	}
 
-	fmt.Printf("%+v\n", *res)
+	o.Meta.UI.Output(res.Definition.Summarize().String())
 }
 
 func (o *TaskDefineOptions) Name() string {

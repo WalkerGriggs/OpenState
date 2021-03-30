@@ -61,7 +61,7 @@ func (o *TaskRunOptions) Run() {
 		return
 	}
 
-	fmt.Printf("%+v\n", *res)
+	o.Meta.UI.Output(res.Instance.Summarize().String())
 }
 
 func (o *TaskRunOptions) Name() string {

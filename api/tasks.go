@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/url"
+	"strings"
+	"text/tabwriter"
 )
 
 // Tasks wraps the client and is used for task-specific endpoints
@@ -20,7 +22,42 @@ type Definition struct {
 	// Metadata groups task-related descriptors
 	Metadata *DefinitionMetadata `yaml:"metadata"`
 
+	// FSM is the blueprint for a graph defined, event driven state machine.
+	// api.FSM doesn't directly expose any functionality, but it used to
+	// initialize a fsm.FSM.
 	FSM *FSM `yaml:"state_machine"`
+}
+
+// Summarize is used to derrive an DefinitionSummary from a Definition object.
+func (d *Definition) Summarize() *DefinitionSummary {
+	return &DefinitionSummary{
+		Name:    d.Metadata.Name,
+		Initial: d.FSM.Initial,
+		Events:  d.FSM.EventNames(),
+	}
+}
+
+// DefinitionSummary is used as a point-in-time summary or the definition object.
+// The DefinitionSummary doesn't expose any functionality itself, but is used to
+// convey high-level information to clients.
+type DefinitionSummary struct {
+	Name    string
+	Initial string
+	Events  []string
+}
+
+// String is used to provide a string representation of an DefinitionSummary.
+// The key/values are columar and tab aligned.
+func (d *DefinitionSummary) String() string {
+	builder := &strings.Builder{}
+	writer := tabwriter.NewWriter(builder, 0, 0, 1, ' ', 0)
+
+	fmt.Fprintf(writer, "Name\t = %s\n", d.Name)
+	fmt.Fprintf(writer, "Initial State\t = %s\n", d.Initial)
+	fmt.Fprintf(writer, "Events\t = %v\n", d.Events)
+	writer.Flush()
+
+	return builder.String()
 }
 
 // Metadata groups task-related descriptors
@@ -39,6 +76,15 @@ type FSM struct {
 
 	// Events is a list of event descriptions.
 	Events []*Event `yaml:"events"`
+}
+
+// EventNames is used to parse the event list and return a list of just the
+// event names.
+func (m *FSM) EventNames() (events []string) {
+	for _, event := range m.Events {
+		events = append(events, event.Name)
+	}
+	return
 }
 
 // Event is used to serialize state machine events

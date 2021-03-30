@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/url"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/walkergriggs/openstate/fsm"
 )
@@ -31,6 +33,38 @@ type Instance struct {
 	// FSM is the graph defined, event driven state machine which provides the
 	// instances backing functionality.
 	FSM *fsm.FSM
+}
+
+// Summarize is used to derrive an InstanceSummary from an Instance object.
+func (i *Instance) Summarize() *InstanceSummary {
+	return &InstanceSummary{
+		ID:         i.ID,
+		Definition: i.Definition.Metadata.Name,
+		Current:    i.FSM.State(),
+	}
+}
+
+// InstanceSummary is used as a point-in-time summary or the instance object.
+// The InstanceSummary doesn't expose any functionality itself, but is used to
+// convey high-level information to clients.
+type InstanceSummary struct {
+	ID         string
+	Definition string
+	Current    string
+}
+
+// String is used to provide a string representation of an InstanceSummary. The
+// key/values are columar and tab aligned.
+func (i *InstanceSummary) String() string {
+	builder := &strings.Builder{}
+	writer := tabwriter.NewWriter(builder, 0, 0, 1, ' ', 0)
+
+	fmt.Fprintf(writer, "ID\t = %s\n", i.ID)
+	fmt.Fprintf(writer, "Definition\t = %s\n", i.Definition)
+	fmt.Fprintf(writer, "Current State\t = %v\n", i.Current)
+	writer.Flush()
+
+	return builder.String()
 }
 
 type (
