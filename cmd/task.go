@@ -7,7 +7,7 @@ import (
 func NewCmdTask() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "task",
-		Short: "task groups task-related subcommands",
+		Short: "Groups task-related subcommands",
 	}
 
 	cmd.AddCommand(NewCmdTaskDefine())

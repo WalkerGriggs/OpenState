@@ -7,6 +7,8 @@ import (
 
 	"github.com/mitchellh/cli"
 	"github.com/spf13/cobra"
+
+	"github.com/walkergriggs/openstate/api"
 )
 
 func TaskPsUsageTemplate() string {
@@ -59,7 +61,9 @@ func (o *TaskPsOptions) Run() {
 		return
 	}
 
-	fmt.Printf("%+v\n", *res)
+	table := FormatTable(formatInstances(res.Instances))
+
+	o.UI.Output(table)
 }
 
 func (o *TaskPsOptions) Name() string {
@@ -86,4 +90,14 @@ func NewCmdTaskPs() *cobra.Command {
 	cmd.SetUsageTemplate(TaskPsUsageTemplate())
 
 	return cmd
+}
+
+func formatInstances(instances []*api.Instance) (data [][]string) {
+	data = append(data, []string{"ID", "Definition", "State"})
+
+	for _, i := range instances {
+		data = append(data, []string{i.ID, i.Definition.Metadata.Name, i.FSM.State()})
+	}
+
+	return
 }

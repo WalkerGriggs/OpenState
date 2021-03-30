@@ -63,7 +63,7 @@ func (o *InstanceEventOptions) Run() {
 		return
 	}
 
-	fmt.Printf("%+v\n", *res)
+	o.Meta.UI.Output(res.Instance.Summarize().String())
 }
 
 func (o *InstanceEventOptions) Name() string {

@@ -7,7 +7,7 @@ import (
 func NewCmdInstance() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "instance",
-		Short: "instance groups instance-related subcommands",
+		Short: "Groups instance-related subcommands",
 	}
 
 	cmd.AddCommand(NewCmdInstanceEvent())
