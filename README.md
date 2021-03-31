@@ -1,12 +1,16 @@
-# OpenState
+
+<p align=center>
+  <img alt="OpenState" src="./assets/black_alpha.png" width="50%">
+</p>
 
 OpenState is a language agnostic task runner focusesd on a low code, declarative approach to
 task definition and lifecycle management.
 
-**Note: OpenState is pre-alpha and should not be used in production environments
-(yet). Its API and core schema is subject to change.**
 
 ## Features
+
+**Note: OpenState is pre-alpha and should not be used in production environments
+(yet). Its API and core schema is subject to change.**
 
 ### Present
 
