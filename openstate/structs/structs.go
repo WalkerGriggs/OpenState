@@ -1,8 +1,6 @@
 package structs
 
 import (
-	"fmt"
-
 	"github.com/walkergriggs/openstate/api"
 	"github.com/walkergriggs/openstate/fsm"
 )
