@@ -17,6 +17,10 @@ type StateStore struct {
 	DB     *memdb.MemDB
 }
 
+type StateSnapshot struct {
+	StateStore
+}
+
 func NewStateStore(config *Config) (*StateStore, error) {
 	s := &StateStore{
 		config: config,
@@ -191,4 +195,17 @@ func (s *StateStore) GetInstanceByID(id string) (*structs.Instance, error) {
 	}
 
 	return nil, nil
+}
+
+func (s *StateStore) Snapshot() (*StateSnapshot, error) {
+	dbSnap := s.DB.Snapshot()
+
+	state := &StateStore{
+		config: s.config,
+		DB:     dbSnap,
+	}
+
+	return &StateSnapshot{
+		StateStore: state,
+	}, nil
 }

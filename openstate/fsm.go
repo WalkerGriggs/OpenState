@@ -28,7 +28,7 @@ type openstateFSMConfig struct {
 // openstateSnapshot implements raft.FSMSnapshot and is used to persist a
 // point-in-time replica of the FSM's state to disk.
 type openstateSnapshot struct {
-	definitions map[string]*structs.Definition
+	stateSnapshot state.StateSnapshot
 }
 
 // NewFSM returns a FSM given a config.
@@ -97,7 +97,9 @@ func (f *openstateFSM) applyRunTask(reqType structs.MessageType, buf []byte, ind
 // which can be used to save a point-in-time snapshot of the FSM.
 // TODO: Snapshot running instances
 func (f *openstateFSM) Snapshot() (raft.FSMSnapshot, error) {
-	return nil, nil
+	return &openstateSnapshot {
+		stateSnapshot: f.state.Snapshot()
+	}, nil
 }
 
 // Restore is used to restore an FSM from a snapshot. It is not called
