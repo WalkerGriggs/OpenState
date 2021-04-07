@@ -12,9 +12,19 @@ Currently, Raft's FSM is storing all objects in memory with native Go datastruct
 
 N/A
 
-## Considered Options
+## Requirements
 
-> This summary enumerates all options. Each option should include: a 2-3 sentence description, a bulleted list of pros and cons, and a sentence stating why this option was ultimately not chosen.
+### Musts
+
+- **Transactions**: We need atomicity across reads and writes. Ideally, we'd be able to differential between read-only and writable txns.
+- **Active support**: We need a datastore with a strong OSS community or investment from a stable company.
+
+### Ideals
+
+- **Complex objects**: We'd prefer the datastore to handle complex objects. KV stores are fine, but namespacing kv-pairs is not a pattern we're used to
+- **Snapshotting**: Raft FSMs need to be snapshotted and periodically written to disc. We like to be able to snapshot / serialize the datastore.
+
+## Considered Options
 
 ### bolt (bbolt)
 
