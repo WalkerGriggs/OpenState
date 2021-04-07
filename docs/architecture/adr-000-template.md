@@ -12,9 +12,21 @@
 
 > If applicable, link to discussions, Issues, PRs, or existing documentation.
 
+## Requirements
+
+> This section lists all of the option requirements. They are broken down into 'musts' and 'ideals'.
+
+## Musts
+
+> Musts are requirements which are non-negotiable. Any option which does not meet these requirements should be immediately disqualified or must have significant, alternative benefits.
+
+## Ideals
+
+> Ideals are requirements which are "nice to have". These requirements help options stand out from the pack, but do not work against the option if absent.
+
 ## Considered Options
 
-> This summary enumerates all options. Each option should include: a 2-3 sentence description, a bulleted list of pros and cons, and a sentence stating why this option was ultimately not chosen.
+> This section enumerates all options. Each option should include: a 2-3 sentence description, a bulleted list of pros and cons, and a sentence stating why this option was ultimately not chosen.
 
 ## Decision
 
