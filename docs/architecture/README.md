@@ -18,6 +18,8 @@ As far as OpenState is concerned, each ADR should:
   - transparently and honestly describe the consequences of the decision.
   - have a changelog! No ADR should be final -- these are living documents.
 
-Use the [ADR template]() to get started.
+Use the [ADR template](adr-000-template.md) to get started.
 
 ## Architecture Decision Log
+
+- [adr-001-in-memory-storage](adr-001-in-memory-storage.md)
