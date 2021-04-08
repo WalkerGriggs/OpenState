@@ -72,22 +72,16 @@ type (
 
 // Definition is used to define task workflows.
 type Definition struct {
-	// Metadata groups task-related descriptors
-	Metadata *DefinitionMetadata
-
-	// FSM is the API's serialized description of a desired finite state machine.
-	// This FSM has no functionality aside from being used to create an instance's
-	// fsm.FSM.
-	FSM *api.FSM
-}
-
-// Metadata groups task-related descriptors
-type DefinitionMetadata struct {
 	// Name is used to describe the task and all versions,
 	Name string
 
 	// Attributes are opaque descriptors to decorate the task.
 	Attributes map[string]string
+
+	// FSM is the API's serialized description of a desired finite state machine.
+	// This FSM has no functionality aside from being used to create an instance's
+	// fsm.FSM.
+	FSM *api.FSM
 }
 
 // Instance is used to run a defined workflow.
@@ -109,7 +103,7 @@ type Instance struct {
 // Validate is used to check the validity of a task object. Validate is not
 // considered comprehensive at this time.
 func (d *Definition) Validate() error {
-	if d.Metadata.Name == "" {
+	if d.Name == "" {
 		return fmt.Errorf("Missing name")
 	}
 

@@ -96,7 +96,7 @@ func formatInstances(instances []*api.Instance) (data [][]string) {
 	data = append(data, []string{"ID", "Definition", "State"})
 
 	for _, i := range instances {
-		data = append(data, []string{i.ID, i.Definition.Metadata.Name, i.FSM.State()})
+		data = append(data, []string{i.ID, i.Definition.Name, i.FSM.State()})
 	}
 
 	return
