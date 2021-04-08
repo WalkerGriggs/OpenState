@@ -19,8 +19,11 @@ func (c *Client) Tasks() *Tasks {
 
 // Definition is used to serialize task definitions
 type Definition struct {
-	// Metadata groups task-related descriptors
-	Metadata *DefinitionMetadata `yaml:"metadata"`
+	// Name is used to describe the task and all versions,
+	Name string
+
+	// Attributes are opaque descriptors to decorate the task.
+	Attributes map[string]string
 
 	// FSM is the blueprint for a graph defined, event driven state machine.
 	// api.FSM doesn't directly expose any functionality, but it used to
@@ -31,7 +34,7 @@ type Definition struct {
 // Summarize is used to derrive an DefinitionSummary from a Definition object.
 func (d *Definition) Summarize() *DefinitionSummary {
 	return &DefinitionSummary{
-		Name:    d.Metadata.Name,
+		Name:    d.Name,
 		Initial: d.FSM.Initial,
 		Events:  d.FSM.EventNames(),
 	}
@@ -58,17 +61,6 @@ func (d *DefinitionSummary) String() string {
 	writer.Flush()
 
 	return builder.String()
-}
-
-// Metadata groups task-related descriptors
-type DefinitionMetadata struct {
-	// Name is a globally unique name for the task.
-	Name string `yaml:"name"`
-
-	// Attributes is a map of task-relevant key-values pairs
-	Attributes map[string]string `yaml:"attributes"`
-
-	FSM *FSM `yaml:"state_machine"`
 }
 
 // FSM is used to serialize state machines

@@ -82,7 +82,7 @@ func formatDefinitions(definitions []*api.Definition) (data [][]string) {
 	data = append(data, []string{"Name"})
 
 	for _, def := range definitions {
-		data = append(data, []string{def.Metadata.Name})
+		data = append(data, []string{def.Name})
 	}
 
 	return

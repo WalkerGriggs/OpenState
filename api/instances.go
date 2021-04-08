@@ -39,7 +39,7 @@ type Instance struct {
 func (i *Instance) Summarize() *InstanceSummary {
 	return &InstanceSummary{
 		ID:         i.ID,
-		Definition: i.Definition.Metadata.Name,
+		Definition: i.Definition.Name,
 		Current:    i.FSM.State(),
 	}
 }

@@ -200,7 +200,7 @@ func (s *StateStore) GetInstanceByID(id string) (*structs.Instance, error) {
 func (s *StateStore) Snapshot() (*StateSnapshot, error) {
 	dbSnap := s.DB.Snapshot()
 
-	state := &StateStore{
+	state := StateStore{
 		config: s.config,
 		DB:     dbSnap,
 	}
