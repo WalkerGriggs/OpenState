@@ -5,12 +5,15 @@ PREFIX := "  --"
 
 ifeq (Linux,$(OS))
 ALL_TARGETS += linux_amd64 \
-               linux_386
+		linux_386
 endif
 
 ifeq (Darwin,$(OS))
 ALL_TARGETS += darwin_amd64
 endif
+
+GOTEST_CMD = go test
+GOTEST_FILES ?= "./..."
 
 ##
 ## Darwin
@@ -79,3 +82,14 @@ tidy:
 vendor: tidy
 	@echo "$(PREFIX) Vendoring deps"
 	@go mod vendor
+
+.PHONY: test
+test:
+	@if [ ! $(SKIP_OPENSTATE_TESTS) ]; then \
+		make test-openstate; \
+		fi
+
+.PHONY: test-openstate
+test-openstate: dev
+	@echo "$(PREFIX) Running OpenSates tests:"
+	$(GOTEST_CMD) -timeout=15m $(GOTEST_FILES)
