@@ -1,14 +1,21 @@
 package openstate
 
 import (
+	"bytes"
+	"encoding/json"
 	"math/rand"
+	"net"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
 	log "github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/assert"
+	"github.com/hashicorp/nomad/helper/freeport"
+	"github.com/stretchr/testify/require"
+
+	"github.com/walkergriggs/openstate/openstate/mocks"
+	"github.com/walkergriggs/openstate/openstate/structs"
 )
 
 func NewTestServer() (*Server, error) {
@@ -20,6 +27,12 @@ func NewTestServer() (*Server, error) {
 		Output:          os.Stdout,
 		IncludeLocation: true,
 	}
+
+	ports := freeport.MustTake(3)
+
+	config.RaftAdvertise = &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]}
+	config.SerfAdvertise = &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]}
+	config.HTTPAdvertise = &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[2]}
 
 	config.NodeName = "foo"
 	config.Logger = log.NewInterceptLogger(opts)
@@ -53,38 +66,155 @@ func TestTasksEndpoint_List(t *testing.T) {
 
 	// Create a new server
 	server, err := NewTestServer()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, server)
 
-	// Serve HTTP endpoints. We won't make any requests over the network, but we
-	// need the httpServer as a function receiver.
+	// Create the http server to use as the method receiver
 	httpServer, err := NewHTTPServer(server, server.config)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, httpServer)
 
-	// Define a no-op task
-	task := &Task{
-		FSM:  nil,
-		Name: "TestingTask",
-		Tags: []string{"test"},
-	}
+	// Mock the definition
+	def := mocks.Definition()
 
-	// Hack to insert a new task
-	server.fsm.tasks = append(server.fsm.tasks, task)
+	// Insert the definition
+	err = server.fsm.state.InsertDefinition(def)
+	require.NoError(t, err)
 
 	// Mock out the ResponseWriter and Request
-	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	req := httptest.NewRequest("GET", "http://example.com/", nil)
 	w := httptest.NewRecorder()
 
 	// Grab the list
 	out, err := httpServer.tasksList(w, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+
+	res := out.(*structs.TaskListResponse)
+
+	require.Equal(t, len(res.Definitions), 1, "there should be a single definition")
+	require.Equal(t, res.Definitions[0], def, "the definitions should match")
+}
+
+func TestTaskEndpoints_Update(t *testing.T) {
+	t.Parallel()
+
+	// Create a new server
+	server, err := NewTestServer()
+	require.NoError(t, err)
+	require.NotNil(t, server)
+
+	// Create the http server to use as the method receiver
+	httpServer, err := NewHTTPServer(server, server.config)
+	require.NoError(t, err)
+	require.NotNil(t, httpServer)
+
+	// Mock the definition
+	def := mocks.Definition()
+
+	body := structs.TaskDefineRequest{
+		Definition: def,
 	}
 
-	// Assertions
-	assert.Equal(t, len(out.Names), 1, "There should we one defined task")
-	assert.Equal(t, out.Names[0], task.Name, "The task names should match")
+	// Write TaskDefineRequest to io.Reader for http.Request
+	buf := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(buf)
+	err = enc.Encode(body)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "http://example.com/", buf)
+	w := httptest.NewRecorder()
+
+	out, err := httpServer.tasksUpdate(w, req)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+
+	res := out.(structs.TaskDefineResponse)
+
+	require.Equal(t, res.Definition.Name, def.Name, "the definitions should match")
+	require.Equal(t, res.Definition.FSM, def.FSM, "the definition FSMs should match")
+}
+
+func TestTaskEndpoints_Run(t *testing.T) {
+	t.Parallel()
+
+	// Create a new server
+	server, err := NewTestServer()
+	require.NoError(t, err)
+	require.NotNil(t, server)
+
+	// Create the http server to use as the method receiver
+	httpServer, err := NewHTTPServer(server, server.config)
+	require.NoError(t, err)
+	require.NotNil(t, httpServer)
+
+	// Mock the definition
+	def := mocks.Definition()
+
+	// Insert the definition
+	err = server.fsm.state.InsertDefinition(def)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "http://example.com/", nil)
+	w := httptest.NewRecorder()
+
+	out, err := httpServer.taskRun(w, req, def.Name)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+
+	res := out.(structs.TaskRunResponse)
+
+	instances, err := server.fsm.state.GetInstances()
+	require.NoError(t, err)
+	require.NotNil(t, instances)
+
+	require.Equal(t, len(instances), 1, "it should insert the running instance")
+	require.Equal(t, instances[0].ID, res.Instance.ID, "it should return the running instance")
+	require.Equal(t, res.Instance.FSM.State(), def.FSM.Initial, "it should be in the initial state")
+}
+
+func TestTaskEndpoints_Ps(t *testing.T) {
+	t.Parallel()
+
+	// Create a new server
+	server, err := NewTestServer()
+	require.NoError(t, err)
+	require.NotNil(t, server)
+
+	// Create the http server to use as the method receiver
+	httpServer, err := NewHTTPServer(server, server.config)
+	require.NoError(t, err)
+	require.NotNil(t, httpServer)
+
+	// Mock two instances from two different definitions
+	i1 := mocks.Instance()
+
+	i2 := mocks.Instance()
+	i2.Definition.Name = "i2-definition"
+	i2.ID = "i2-instance"
+
+	for _, instance := range []*structs.Instance{i1, i2} {
+		err = server.fsm.state.InsertDefinition(instance.Definition)
+		require.NoError(t, err)
+
+		err = server.fsm.state.InsertInstance(instance)
+		require.NoError(t, err)
+	}
+
+	instances, err := server.fsm.state.GetInstances()
+	require.NoError(t, err)
+	require.NotNil(t, instances)
+	require.Equal(t, len(instances), 2)
+
+	req := httptest.NewRequest("GET", "http://example.com/", nil)
+	w := httptest.NewRecorder()
+
+	out, err := httpServer.taskPs(w, req, i1.Definition.Name)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+
+	res := out.(*structs.TaskPsResponse)
+
+	require.Equal(t, len(res.Instances), 1, "it should return a single instance")
+	require.Equal(t, res.Instances[0].ID, i1.ID, "it should return the only matching instance")
 }

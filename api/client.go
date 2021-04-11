@@ -46,7 +46,7 @@ func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) error 
 	if resp.StatusCode != 200 {
 		var buf bytes.Buffer
 		io.Copy(&buf, resp.Body)
-		return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf)
+		return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.String())
 	}
 
 	if out != nil {
@@ -76,7 +76,7 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) er
 	if resp.StatusCode != 200 {
 		var buf bytes.Buffer
 		io.Copy(&buf, resp.Body)
-		return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf)
+		return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.String())
 	}
 
 	if out != nil {

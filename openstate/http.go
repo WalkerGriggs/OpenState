@@ -122,6 +122,9 @@ func (s *HTTPServer) forward(resp http.ResponseWriter, req *http.Request) (bool,
 	}
 
 	parts := s.server.peers[address]
+	if parts == nil {
+		return true, fmt.Errorf("Failed to get peer information.")
+	}
 
 	// TODO
 	//   - scheme shouldn't be hardcoded
