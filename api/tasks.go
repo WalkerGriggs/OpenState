@@ -92,6 +92,13 @@ type Event struct {
 	// Src is a list of all possible source state. Each state should be unique, so
 	// ideally this slice would be a set.
 	Src []string `yaml:"sources"`
+
+	// Callback is the callback -- duh
+	Callback *Callback `yaml:"callback"`
+}
+
+type Callback struct {
+	Image string `yaml:"image"`
 }
 
 type (
