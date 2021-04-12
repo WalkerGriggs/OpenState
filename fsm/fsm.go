@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"context"
 	"fmt"
 	"sync"
 )
@@ -9,7 +10,7 @@ import (
 type FSMConfig struct{}
 
 // FSM is the core Finite State Machine implementation. And follows a strict,
-// graph-defined architecture where are transitions are event-based.
+// gkaph-defined architecture where are transitions are event-based.
 // TODO Implement callbacks for a given driver interface. Callbacks sound be
 //      more than function pointers.
 type FSM struct {
@@ -20,13 +21,17 @@ type FSM struct {
 	// manipulated directly.
 	current string
 
-	// stateMu is a read-write mutex lock to gaurd against state-related race
-	// conditions.
+	// stateMu is a read-write mutex lock to gaurd against state-related
+	// race conditions.
 	stateMu sync.RWMutex
 
-	// transitions is a map of all unique transitions, where the keys are built
-	// from unique event name/src pairs.
+	// transitions is a map of all unique transitions, where the keys are
+	// built from unique event name/src pairs.
 	transitions map[eParts]string
+
+	// callbacks is a map of all unique callbacks, where they key is the
+	// event name
+	callbacks map[string]Callback
 }
 
 // Event describes a single event, its origin states, and its intended
@@ -55,10 +60,11 @@ type eParts struct {
 // NewFSM create a FSM given an initial state and a list of events.
 // TODO raise an error if the initial state is not a valid src state of any
 //      event.
-func NewFSM(config *FSMConfig, initial string, events Events) (*FSM, error) {
+func NewFSM(config *FSMConfig, initial string, events Events, callbacks map[string]Callback) (*FSM, error) {
 	fsm := &FSM{
 		current:     initial,
 		config:      config,
+		callbacks:   callbacks,
 		transitions: make(map[eParts]string),
 	}
 
@@ -76,6 +82,10 @@ func (fsm *FSM) State() string {
 	fsm.stateMu.RLock()
 	defer fsm.stateMu.RUnlock()
 	return fsm.current
+}
+
+func (fsm *FSM) Callbacks() map[string]Callback {
+	return fsm.callbacks
 }
 
 // Can checks if the state machine can perform the given event considering the
@@ -101,6 +111,13 @@ func (fsm *FSM) Do(event string) error {
 	dst, ok := fsm.transitions[eParts{event, fsm.current}]
 	if !ok {
 		return fmt.Errorf("FSM cannot %s", event)
+	}
+
+	// TODO Add a lock
+	// TODO Wait for callback to finish? How do we want to handle long running queries?
+	callback := fsm.callbacks[event]
+	if _, err := callback.Run(context.Background()); err != nil {
+		return err
 	}
 
 	fsm.stateMu.RUnlock()

@@ -9,11 +9,13 @@ import (
 func (m *FSM) MarshalText() ([]byte, error) {
 	b, err := json.Marshal(
 		struct {
-			Current     string            `json:"current"`
-			Transitions map[eParts]string `json:"transitions"`
+			Current     string              `json:"current"`
+			Transitions map[eParts]string   `json:"transitions"`
+			Callbacks   map[string]Callback `json:"callbacks"`
 		}{
 			Current:     m.current,
 			Transitions: m.transitions,
+			Callbacks:   m.callbacks,
 		},
 	)
 
@@ -24,8 +26,9 @@ func (m *FSM) MarshalText() ([]byte, error) {
 // encoding packages. necessary to unmarshal FSM from JSON.
 func (m *FSM) UnmarshalText(b []byte) error {
 	fsm := struct {
-		Current     string            `json:"current"`
-		Transitions map[eParts]string `json:"transitions"`
+		Current     string              `json:"current"`
+		Transitions map[eParts]string   `json:"transitions"`
+		Callbacks   map[string]Callback `json:"callbacks"`
 	}{}
 
 	err := json.Unmarshal(b, &fsm)
@@ -35,6 +38,7 @@ func (m *FSM) UnmarshalText(b []byte) error {
 
 	m.current = fsm.Current
 	m.transitions = fsm.Transitions
+	m.callbacks = fsm.Callbacks
 
 	return nil
 }
